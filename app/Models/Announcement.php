@@ -2,28 +2,31 @@
 
 namespace App\Models;
 
-use Database\Factories\NewsFactory;
+use Database\Factories\AnnouncementFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'title',
-    'summary',
+    'content',
     'thumbnail',
-    'instagram_url',
+    'link',
     'published_at',
     'status',
 ])]
-class News extends Model
+class Announcement extends Model
 {
-    /** @use HasFactory<NewsFactory> */
+    /** @use HasFactory<AnnouncementFactory> */
     use HasFactory;
 
     protected $appends = ['thumbnail_url'];
 
+    /**
+     * Get the public URL of the thumbnail.
+     */
     protected function thumbnailUrl(): Attribute
     {
         return Attribute::make(
@@ -36,8 +39,6 @@ class News extends Model
 
     /**
      * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
      */
     protected function casts(): array
     {
