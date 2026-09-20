@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\JobSeekerResource;
 use App\Models\JobSeeker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,15 +12,15 @@ use Illuminate\Validation\Rule;
 class AdminJobSeekerController extends Controller
 {
     /**
-     * Display a listing of job seekers.
+     * Menampilkan daftar pencari kerja.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = JobSeeker::query();
 
-        // Pencarian berdasarkan nama, NIK, atau nomor AK-1.
+        // Search berdasarkan nama, NIK, atau nomor AK1.
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = $request->search;
 
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
@@ -28,123 +29,175 @@ class AdminJobSeekerController extends Controller
             });
         }
 
-        // Filter berdasarkan status.
+        // Filter status.
         if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+            $query->where('status', $request->status);
         }
 
-        // Filter berdasarkan pendidikan terakhir.
-        if ($request->filled('education')) {
+        // Filter pendidikan terakhir.
+        if ($request->filled('last_education')) {
             $query->where(
                 'last_education',
                 'like',
-                '%' . $request->input('education') . '%'
+                '%' . $request->last_education . '%'
             );
         }
 
-        // Filter berdasarkan lokasi yang diinginkan.
-        if ($request->filled('location')) {
+        // Filter lokasi pekerjaan yang diinginkan.
+        if ($request->filled('desired_location')) {
             $query->where(
                 'desired_location',
                 'like',
-                '%' . $request->input('location') . '%'
+                '%' . $request->desired_location . '%'
             );
         }
 
         $jobSeekers = $query
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar pencari kerja berhasil diambil',
-            'data' => $jobSeekers,
-        ]);
+        return JobSeekerResource::collection($jobSeekers);
     }
 
     /**
-     * Display a specific job seeker.
+     * Menampilkan detail pencari kerja.
      */
-    public function show(JobSeeker $jobSeeker): JsonResponse
+    public function show(JobSeeker $jobSeeker): JobSeekerResource
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail pencari kerja berhasil diambil',
-            'data' => $jobSeeker,
-        ]);
+        return new JobSeekerResource($jobSeeker);
     }
 
     /**
-     * Store a new job seeker.
+     * Menambahkan data pencari kerja.
      */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'ak1_number' => ['nullable', 'string', 'max:100', 'unique:job_seekers,ak1_number'],
-            'nik' => ['required', 'digits:16', 'unique:job_seekers,nik'],
+            'ak1_number' => [
+                'nullable',
+                'string',
+                'max:100',
+                'unique:job_seekers,ak1_number',
+            ],
 
-            'name' => ['required', 'string', 'max:255'],
-            'birth_place' => ['nullable', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date'],
+            'nik' => [
+                'required',
+                'string',
+                'max:50',
+                'unique:job_seekers,nik',
+            ],
 
-            'gender' => ['nullable', 'string', 'max:50'],
-            'marital_status' => ['nullable', 'string', 'max:100'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
 
-            'address' => ['nullable', 'string'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'birth_place' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
 
-            'last_education' => ['nullable', 'string', 'max:100'],
-            'institution' => ['nullable', 'string', 'max:255'],
+            'birth_date' => [
+                'nullable',
+                'date',
+            ],
 
-            'skills' => ['nullable', 'string'],
-            'languages' => ['nullable', 'string'],
+            'gender' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
 
-            'desired_position' => ['nullable', 'string', 'max:255'],
-            'desired_location' => ['nullable', 'string', 'max:255'],
-            'desired_salary' => ['nullable', 'string', 'max:100'],
+            'marital_status' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
 
-            'worked_last_6_months' => ['boolean'],
+            'address' => [
+                'required',
+                'string',
+            ],
+
+            'phone' => [
+                'nullable',
+                'string',
+                'max:30',
+            ],
+
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+            ],
+
+            'last_education' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+
+            'institution' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'skills' => [
+                'nullable',
+                'string',
+            ],
+
+            'languages' => [
+                'nullable',
+                'string',
+            ],
+
+            'desired_position' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'desired_location' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'desired_salary' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
+            'worked_last_6_months' => [
+                'nullable',
+                'boolean',
+            ],
         ]);
 
-        $jobSeeker = JobSeeker::create([
-            'ak1_number' => $validated['ak1_number'] ?? null,
-            'nik' => $validated['nik'],
-            'name' => $validated['name'],
-            'birth_place' => $validated['birth_place'] ?? null,
-            'birth_date' => $validated['birth_date'] ?? null,
-            'gender' => $validated['gender'] ?? null,
-            'marital_status' => $validated['marital_status'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'phone' => $validated['phone'] ?? null,
-            'email' => $validated['email'] ?? null,
-            'last_education' => $validated['last_education'] ?? null,
-            'institution' => $validated['institution'] ?? null,
-            'skills' => $validated['skills'] ?? null,
-            'languages' => $validated['languages'] ?? null,
-            'desired_position' => $validated['desired_position'] ?? null,
-            'desired_location' => $validated['desired_location'] ?? null,
-            'desired_salary' => $validated['desired_salary'] ?? null,
-            'worked_last_6_months' => $validated['worked_last_6_months'] ?? false,
-            'status' => 'pending',
-            'rejection_reason' => null,
-            'verified_at' => null,
-        ]);
+        $jobSeeker = JobSeeker::create($validated);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Data pencari kerja berhasil ditambahkan',
-            'data' => $jobSeeker,
+            'message' => 'Data pencari kerja berhasil ditambahkan.',
+            'data' => new JobSeekerResource($jobSeeker),
         ], 201);
     }
 
     /**
-     * Update a job seeker.
+     * Mengubah data pencari kerja.
      */
-    public function update(Request $request, JobSeeker $jobSeeker): JsonResponse
-    {
+    public function update(
+        Request $request,
+        JobSeeker $jobSeeker
+    ): JsonResponse {
         $validated = $request->validate([
             'ak1_number' => [
+                'sometimes',
                 'nullable',
                 'string',
                 'max:100',
@@ -153,121 +206,180 @@ class AdminJobSeekerController extends Controller
             ],
 
             'nik' => [
+                'sometimes',
                 'required',
-                'digits:16',
+                'string',
+                'max:50',
                 Rule::unique('job_seekers', 'nik')
                     ->ignore($jobSeeker->id),
             ],
 
-            'name' => ['required', 'string', 'max:255'],
-            'birth_place' => ['nullable', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date'],
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+            ],
 
-            'gender' => ['nullable', 'string', 'max:50'],
-            'marital_status' => ['nullable', 'string', 'max:100'],
+            'birth_place' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:100',
+            ],
 
-            'address' => ['nullable', 'string'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'birth_date' => [
+                'sometimes',
+                'nullable',
+                'date',
+            ],
 
-            'last_education' => ['nullable', 'string', 'max:100'],
-            'institution' => ['nullable', 'string', 'max:255'],
+            'gender' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:50',
+            ],
 
-            'skills' => ['nullable', 'string'],
-            'languages' => ['nullable', 'string'],
+            'marital_status' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:50',
+            ],
 
-            'desired_position' => ['nullable', 'string', 'max:255'],
-            'desired_location' => ['nullable', 'string', 'max:255'],
-            'desired_salary' => ['nullable', 'string', 'max:100'],
+            'address' => [
+                'sometimes',
+                'required',
+                'string',
+            ],
 
-            'worked_last_6_months' => ['boolean'],
+            'phone' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:30',
+            ],
+
+            'email' => [
+                'sometimes',
+                'nullable',
+                'email',
+                'max:255',
+            ],
+
+            'last_education' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:100',
+            ],
+
+            'institution' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'skills' => [
+                'sometimes',
+                'nullable',
+                'string',
+            ],
+
+            'languages' => [
+                'sometimes',
+                'nullable',
+                'string',
+            ],
+
+            'desired_position' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'desired_location' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'desired_salary' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
+            'worked_last_6_months' => [
+                'sometimes',
+                'nullable',
+                'boolean',
+            ],
         ]);
 
-        $jobSeeker->update([
-            'ak1_number' => $validated['ak1_number'] ?? null,
-            'nik' => $validated['nik'],
-            'name' => $validated['name'],
-            'birth_place' => $validated['birth_place'] ?? null,
-            'birth_date' => $validated['birth_date'] ?? null,
-            'gender' => $validated['gender'] ?? null,
-            'marital_status' => $validated['marital_status'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'phone' => $validated['phone'] ?? null,
-            'email' => $validated['email'] ?? null,
-            'last_education' => $validated['last_education'] ?? null,
-            'institution' => $validated['institution'] ?? null,
-            'skills' => $validated['skills'] ?? null,
-            'languages' => $validated['languages'] ?? null,
-            'desired_position' => $validated['desired_position'] ?? null,
-            'desired_location' => $validated['desired_location'] ?? null,
-            'desired_salary' => $validated['desired_salary'] ?? null,
-            'worked_last_6_months' => $validated['worked_last_6_months'] ?? false,
-        ]);
+        $jobSeeker->update($validated);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Data pencari kerja berhasil diperbarui',
-            'data' => $jobSeeker->fresh(),
+            'message' => 'Data pencari kerja berhasil diperbarui.',
+            'data' => new JobSeekerResource($jobSeeker->fresh()),
         ]);
     }
 
     /**
-     * Verify a job seeker.
-     */
-    public function verify(JobSeeker $jobSeeker): JsonResponse
-    {
-        if ($jobSeeker->status === 'verified') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data pencari kerja sudah diverifikasi',
-            ], 422);
-        }
-
-        $jobSeeker->update([
-            'status' => 'verified',
-            'rejection_reason' => null,
-            'verified_at' => now(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data pencari kerja berhasil diverifikasi',
-            'data' => $jobSeeker->fresh(),
-        ]);
-    }
-
-    /**
-     * Reject a job seeker.
-     */
-    public function reject(Request $request, JobSeeker $jobSeeker): JsonResponse
-    {
-        $validated = $request->validate([
-            'rejection_reason' => ['required', 'string', 'min:5'],
-        ]);
-
-        $jobSeeker->update([
-            'status' => 'rejected',
-            'rejection_reason' => $validated['rejection_reason'],
-            'verified_at' => null,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data pencari kerja berhasil ditolak',
-            'data' => $jobSeeker->fresh(),
-        ]);
-    }
-
-    /**
-     * Delete a job seeker.
+     * Menghapus data pencari kerja.
      */
     public function destroy(JobSeeker $jobSeeker): JsonResponse
     {
         $jobSeeker->delete();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Data pencari kerja berhasil dihapus',
+            'message' => 'Data pencari kerja berhasil dihapus.',
+        ]);
+    }
+
+    /**
+     * Memverifikasi pencari kerja.
+     */
+    public function verify(JobSeeker $jobSeeker): JobSeekerResource
+    {
+        $jobSeeker->update([
+            'status' => 'verified',
+            'rejection_reason' => null,
+            'verified_at' => now(),
+        ]);
+
+        return new JobSeekerResource($jobSeeker->fresh());
+    }
+
+    /**
+     * Menolak pencari kerja.
+     */
+    public function reject(
+        Request $request,
+        JobSeeker $jobSeeker
+    ): JsonResponse {
+        $validated = $request->validate([
+            'rejection_reason' => [
+                'required',
+                'string',
+                'max:1000',
+            ],
+        ]);
+
+        $jobSeeker->update([
+            'status' => 'rejected',
+            'rejection_reason' => $validated['rejection_reason'],
+            'verified_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Data pencari kerja ditolak.',
+            'data' => new JobSeekerResource($jobSeeker->fresh()),
         ]);
     }
 }
