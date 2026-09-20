@@ -6,6 +6,9 @@ use App\Models\Company;
 use App\Models\Job;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use App\Models\JobSeeker;
+use App\Models\Page;
+use App\Models\Service;
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -88,5 +91,42 @@ Kirim CV dan surat lamaran melalui email hrd@majubersama.com dengan subject "Lam
             'views' => 0,
             'status' => 'approved',
         ]);
+
+        Page::create([
+            'title' => 'Sejarah',
+            'slug' => 'sejarah',
+            'content' => 'Sejarah Dinas Tenaga Kerja Kota Tasikmalaya.',
+            'status' => 'published',
+        ]);
+
+        Page::create([
+            'title' => 'Struktur Organisasi',
+            'slug' => 'struktur-organisasi',
+            'content' => 'Struktur organisasi Dinas Tenaga Kerja Kota Tasikmalaya.',
+            'status' => 'published',
+        ]);
+
+        Page::create([
+            'title' => 'Visi & Misi',
+            'slug' => 'visi-misi',
+            'content' => 'Visi dan Misi Dinas Tenaga Kerja Kota Tasikmalaya.',
+            'status' => 'published',
+        ]);
+
+        Page::create([
+            'title' => 'Tupoksi',
+            'slug' => 'tupoksi',
+            'content' => 'Tugas pokok dan fungsi Dinas Tenaga Kerja Kota Tasikmalaya.',
+            'status' => 'published',
+        ]);
+
+Page::create([
+    'title' => 'Pejabat Struktural',
+    'slug' => 'pejabat-struktural',
+    'content' => 'Informasi pejabat struktural Dinas Tenaga Kerja Kota Tasikmalaya.',
+    'status' => 'published',
+]);
+        JobSeeker::factory()->count(10)->create();
+        Service::factory()->count(3)->create();
     }
 }

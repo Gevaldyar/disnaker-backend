@@ -3,90 +3,184 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Announcement;
 use App\Models\Company;
 use App\Models\Job;
+use App\Models\JobSeeker;
 use App\Models\News;
 use App\Models\Training;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AdminDashboardController extends Controller
 {
-    /**
-     * Display admin dashboard statistics.
-     */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        // Statistik perusahaan.
-        $companyStats = [
+        /*
+        |--------------------------------------------------------------------------
+        | Statistik perusahaan
+        |--------------------------------------------------------------------------
+        */
+
+        $companyStatistics = [
             'total' => Company::count(),
-            'pending' => Company::where('status', 'pending')->count(),
-            'approved' => Company::where('status', 'approved')->count(),
-            'rejected' => Company::where('status', 'rejected')->count(),
-            'suspended' => Company::where('status', 'suspended')->count(),
+
+            'pending' => Company::where('status', 'pending')
+                ->count(),
+
+            'approved' => Company::where('status', 'approved')
+                ->count(),
+
+            'rejected' => Company::where('status', 'rejected')
+                ->count(),
+
+            'suspended' => Company::where('status', 'suspended')
+                ->count(),
         ];
 
-        // Statistik lowongan.
-        $jobStats = [
+        /*
+        |--------------------------------------------------------------------------
+        | Statistik lowongan
+        |--------------------------------------------------------------------------
+        */
+
+        $jobStatistics = [
             'total' => Job::count(),
 
-            // Lowongan approved yang belum melewati masa berlaku.
+            'draft' => Job::where('status', 'draft')
+                ->count(),
+
+            'pending' => Job::where('status', 'pending')
+                ->count(),
+
+            'approved' => Job::where('status', 'approved')
+                ->count(),
+
+            'rejected' => Job::where('status', 'rejected')
+                ->count(),
+
+            'expired' => Job::where('status', 'expired')
+                ->count(),
+
             'active' => Job::where('status', 'approved')
                 ->where(function ($query) {
                     $query->whereNull('expires_at')
-                        ->orWhereDate('expires_at', '>=', today());
+                        ->orWhereDate(
+                            'expires_at',
+                            '>=',
+                            now()->toDateString()
+                        );
                 })
                 ->count(),
-
-            'pending' => Job::where('status', 'pending')->count(),
-            'rejected' => Job::where('status', 'rejected')->count(),
-            'expired' => Job::where('status', 'expired')->count(),
-            'draft' => Job::where('status', 'draft')->count(),
         ];
 
-        // Statistik berita.
-        $newsStats = [
-            'total' => News::count(),
-            'published' => News::where('status', 'published')->count(),
-            'draft' => News::where('status', 'draft')->count(),
+        /*
+        |--------------------------------------------------------------------------
+        | Statistik konten
+        |--------------------------------------------------------------------------
+        */
+
+        $contentStatistics = [
+            'news_total' => News::count(),
+
+            'news_published' => News::where('status', 'published')
+                ->count(),
+
+            'training_total' => Training::count(),
+
+            'training_published' => Training::where('status', 'published')
+                ->count(),
+
+            'announcement_total' => Announcement::count(),
+
+            'announcement_published' => Announcement::where('status', 'published')
+                ->count(),
         ];
 
-        // Statistik pelatihan.
-        $trainingStats = [
-            'total' => Training::count(),
-            'published' => Training::where('status', 'published')->count(),
-            'draft' => Training::where('status', 'draft')->count(),
+        /*
+        |--------------------------------------------------------------------------
+        | Statistik pencari kerja
+        |--------------------------------------------------------------------------
+        |
+        | Data pribadi tidak dikirim ke dashboard.
+        | Dashboard hanya menggunakan jumlah data.
+        |
+        */
+
+        $jobSeekerStatistics = [
+            'total' => JobSeeker::count(),
+
+            'pending' => JobSeeker::where('status', 'pending')
+                ->count(),
+
+            'verified' => JobSeeker::where('status', 'verified')
+                ->count(),
+
+            'rejected' => JobSeeker::where('status', 'rejected')
+                ->count(),
         ];
 
-        // Lowongan terbaru yang menunggu verifikasi.
-        $pendingJobs = Job::with('company')
+        /*
+        |--------------------------------------------------------------------------
+        | Data terbaru
+        |--------------------------------------------------------------------------
+        */
+
+        $pendingCompanies = Company::query()
             ->where('status', 'pending')
             ->latest()
-            ->limit(5)
-            ->get();
+            ->take(5)
+            ->get([
+                'id',
+                'name',
+                'email',
+                'phone',
+                'status',
+                'created_at',
+            ]);
 
-        // Perusahaan terbaru yang menunggu verifikasi.
-        $pendingCompanies = Company::with('user')
+        $pendingJobs = Job::query()
+            ->with('company:id,name')
             ->where('status', 'pending')
             ->latest()
-            ->limit(5)
-            ->get();
+            ->take(5)
+            ->get([
+                'id',
+                'company_id',
+                'title',
+                'location',
+                'expires_at',
+                'status',
+                'created_at',
+            ]);
 
-        // Berita terbaru yang sudah dipublikasikan.
-        $latestNews = News::where('status', 'published')
-            ->latest('published_at')
-            ->limit(5)
-            ->get();
+        $latestNews = News::query()
+            ->latest()
+            ->take(5)
+            ->get([
+                'id',
+                'title',
+                'status',
+                'published_at',
+                'created_at',
+            ]);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Data dashboard Admin berhasil diambil',
+            'message' => 'Data dashboard admin berhasil diambil.',
+
             'data' => [
-                'companies' => $companyStats,
-                'jobs' => $jobStats,
-                'news' => $newsStats,
-                'trainings' => $trainingStats,
-                'pending_jobs' => $pendingJobs,
+                'companies' => $companyStatistics,
+
+                'jobs' => $jobStatistics,
+
+                'job_seekers' => $jobSeekerStatistics,
+
+                'content' => $contentStatistics,
+
                 'pending_companies' => $pendingCompanies,
+
+                'pending_jobs' => $pendingJobs,
+
                 'latest_news' => $latestNews,
             ],
         ]);

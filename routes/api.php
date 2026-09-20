@@ -1,26 +1,39 @@
 <?php
 
-use App\Http\Controllers\Api\CompanyRegistrationController;
-use App\Http\Controllers\Api\CompanyJobController;
+use App\Http\Controllers\Api\AdminAnnouncementController;
+use App\Http\Controllers\Api\AdminCompanyController;
+use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AdminJobController;
+use App\Http\Controllers\Api\AdminJobSeekerController;
+use App\Http\Controllers\Api\AdminNewsController;
+use App\Http\Controllers\Api\AdminPageController;
+use App\Http\Controllers\Api\AdminServiceController;
+use App\Http\Controllers\Api\AdminTrainingController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\CompanyDashboardController;
+use App\Http\Controllers\Api\CompanyJobController;
+use App\Http\Controllers\Api\CompanyRegistrationController;
+use App\Http\Controllers\Api\EmploymentStatisticController;
 use App\Http\Controllers\Api\JobController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AdminJobController;
-use App\Http\Controllers\Api\AdminCompanyController;
-use App\Http\Controllers\Api\AdminNewsController;
-use App\Http\Controllers\Api\AdminTrainingController;
 use App\Http\Controllers\Api\NewsController;
+use App\Http\Controllers\Api\PageController;
+use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\TrainingController;
-use App\Http\Controllers\Api\AdminDashboardController;
-use App\Http\Controllers\Api\AdminController;
-use App\Http\Controllers\Api\AdminAnnouncementController;
-use App\Http\Controllers\Api\AnnouncementController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Test
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/test', function () {
     return response()->json([
         'success' => true,
-        'message' => 'API Disnaker berhasil berjalan'
+        'message' => 'API Disnaker berhasil berjalan',
     ]);
 });
 
@@ -33,8 +46,6 @@ Route::get('/test', function () {
 Route::get('/jobs', [JobController::class, 'index']);
 Route::get('/jobs/{job}', [JobController::class, 'show']);
 
-Route::post('/company/register', [CompanyRegistrationController::class, 'register']);
-
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/news/{news}', [NewsController::class, 'show']);
 
@@ -44,6 +55,14 @@ Route::get('/trainings/{training}', [TrainingController::class, 'show']);
 Route::get('/announcements', [AnnouncementController::class, 'index']);
 Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show']);
 
+Route::get('/employment-statistics', [EmploymentStatisticController::class, 'index']);
+
+Route::get('/pages', [PageController::class, 'index']);
+Route::get('/pages/{slug}', [PageController::class, 'show']);
+
+Route::get('/services', [ServiceController::class, 'index']);
+Route::get('/services/{slug}', [ServiceController::class, 'show']);
+
 /*
 |--------------------------------------------------------------------------
 | Authentication
@@ -52,77 +71,354 @@ Route::get('/announcements/{announcement}', [AnnouncementController::class, 'sho
 
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::post(
+    '/company/register',
+    [CompanyRegistrationController::class, 'register']
+);
+
 /*
 |--------------------------------------------------------------------------
-| Protected Routes
+| Authenticated User Routes
 |--------------------------------------------------------------------------
 */
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-    
-Route::middleware('role:admin')->group(function () {
-    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
-
-    Route::get('/admin/admins', [AdminController::class, 'index']);
-    Route::post('/admin/admins', [AdminController::class, 'store']);
-    Route::get('/admin/admins/{user}', [AdminController::class, 'show']);
-    Route::put('/admin/admins/{user}', [AdminController::class, 'update']);
-    Route::delete('/admin/admins/{user}', [AdminController::class, 'destroy']);
-
-    Route::get('/admin/jobs', [AdminJobController::class, 'index']);
-    Route::get('/admin/jobs/pending', [AdminJobController::class, 'pending']);
-
-    Route::patch('/admin/jobs/{job}/approve', [AdminJobController::class, 'approve']);
-    Route::patch('/admin/jobs/{job}/reject', [AdminJobController::class, 'reject']);
-
-    Route::delete('/admin/jobs/{job}', [AdminJobController::class, 'destroy']);
-
-    Route::get('/admin/companies', [AdminCompanyController::class, 'index']);
-    Route::get('/admin/companies/pending', [AdminCompanyController::class, 'pending']);
-    Route::get('/admin/companies/{company}', [AdminCompanyController::class, 'show']);
-
-    Route::patch('/admin/companies/{company}/approve', [AdminCompanyController::class, 'approve']);
-    Route::patch('/admin/companies/{company}/reject', [AdminCompanyController::class, 'reject']);
-    Route::patch('/admin/companies/{company}/suspend', [AdminCompanyController::class, 'suspend']);
-
-    Route::get('/admin/news', [AdminNewsController::class, 'index']);
-    Route::post('/admin/news', [AdminNewsController::class, 'store']);
-    Route::get('/admin/news/{news}', [AdminNewsController::class, 'show']);
-    Route::post('/admin/news/{news}', [AdminNewsController::class, 'update']);
-    Route::delete('/admin/news/{news}', [AdminNewsController::class, 'destroy']);
-
-    Route::get('/admin/trainings', [AdminTrainingController::class, 'index']);
-    Route::post('/admin/trainings', [AdminTrainingController::class, 'store']);
-    Route::get('/admin/trainings/{training}', [AdminTrainingController::class, 'show']);
-    Route::post('/admin/trainings/{training}', [AdminTrainingController::class, 'update']);
-    Route::delete('/admin/trainings/{training}', [AdminTrainingController::class, 'destroy']);
-
-    Route::get('/admin/announcements', [AdminAnnouncementController::class, 'index']);
-    Route::post('/admin/announcements', [AdminAnnouncementController::class, 'store']);
-    Route::get('/admin/announcements/{announcement}', [AdminAnnouncementController::class, 'show']);
-    Route::post('/admin/announcements/{announcement}', [AdminAnnouncementController::class, 'update']);
-    Route::delete('/admin/announcements/{announcement}', [AdminAnnouncementController::class, 'destroy']);
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Company Routes
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role:perusahaan')->group(function () {
-    Route::get('/company/profile', [CompanyController::class, 'show']);
-    Route::put('/company/profile', [CompanyController::class, 'update']);
-
-    Route::get('/company/jobs', [CompanyJobController::class, 'index']);
-    Route::post('/company/jobs', [CompanyJobController::class, 'store']);
-    Route::get('/company/jobs/{job}', [CompanyJobController::class, 'show']);
-    Route::put('/company/jobs/{job}', [CompanyJobController::class, 'update']);
-    Route::delete('/company/jobs/{job}', [CompanyJobController::class, 'destroy']);
-    Route::post('/company/jobs/{job}/submit', [CompanyJobController::class, 'submit']);
-
-    Route::patch('/company/password', [CompanyController::class, 'changePassword']);
-    Route::delete('/company/account', [CompanyController::class, 'destroy']);
-    });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Admin Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admin')
+    ->middleware(['auth:sanctum', 'role:admin'])
+    ->group(function () {
+
+        // Dashboard
+        Route::get('/dashboard', [
+            AdminDashboardController::class,
+            'index'
+        ]);
+
+        // Admin Management
+        Route::get('/admins', [
+            AdminController::class,
+            'index'
+        ]);
+
+        Route::post('/admins', [
+            AdminController::class,
+            'store'
+        ]);
+
+        Route::get('/admins/{user}', [
+            AdminController::class,
+            'show'
+        ]);
+
+        Route::put('/admins/{user}', [
+            AdminController::class,
+            'update'
+        ]);
+
+        Route::delete('/admins/{user}', [
+            AdminController::class,
+            'destroy'
+        ]);
+
+        // Company Management
+        Route::get('/companies', [
+            AdminCompanyController::class,
+            'index'
+        ]);
+
+        Route::get('/companies/pending', [
+            AdminCompanyController::class,
+            'pending'
+        ]);
+
+        Route::get('/companies/{company}', [
+            AdminCompanyController::class,
+            'show'
+        ]);
+
+        Route::patch('/companies/{company}/approve', [
+            AdminCompanyController::class,
+            'approve'
+        ]);
+
+        Route::patch('/companies/{company}/reject', [
+            AdminCompanyController::class,
+            'reject'
+        ]);
+
+        Route::patch('/companies/{company}/suspend', [
+            AdminCompanyController::class,
+            'suspend'
+        ]);
+
+        // Job Management
+        Route::get('/jobs/pending', [
+            AdminJobController::class,
+            'pending'
+        ]);
+
+        Route::get('/jobs', [
+            AdminJobController::class,
+            'index'
+        ]);
+
+        Route::patch('/jobs/{job}/approve', [
+            AdminJobController::class,
+            'approve'
+        ]);
+
+        Route::patch('/jobs/{job}/reject', [
+            AdminJobController::class,
+            'reject'
+        ]);
+
+        Route::delete('/jobs/{job}', [
+            AdminJobController::class,
+            'destroy'
+        ]);
+
+        // Job Seeker Management
+        Route::get('/job-seekers', [
+            AdminJobSeekerController::class,
+            'index'
+        ]);
+
+        Route::post('/job-seekers', [
+            AdminJobSeekerController::class,
+            'store'
+        ]);
+
+        Route::get('/job-seekers/{jobSeeker}', [
+            AdminJobSeekerController::class,
+            'show'
+        ]);
+
+        Route::put('/job-seekers/{jobSeeker}', [
+            AdminJobSeekerController::class,
+            'update'
+        ]);
+
+        Route::delete('/job-seekers/{jobSeeker}', [
+            AdminJobSeekerController::class,
+            'destroy'
+        ]);
+
+        Route::patch('/job-seekers/{jobSeeker}/verify', [
+            AdminJobSeekerController::class,
+            'verify'
+        ]);
+
+        Route::patch('/job-seekers/{jobSeeker}/reject', [
+            AdminJobSeekerController::class,
+            'reject'
+        ]);
+
+        // News Management
+        Route::get('/news', [
+            AdminNewsController::class,
+            'index'
+        ]);
+
+        Route::post('/news', [
+            AdminNewsController::class,
+            'store'
+        ]);
+
+        Route::get('/news/{news}', [
+            AdminNewsController::class,
+            'show'
+        ]);
+
+        Route::post('/news/{news}', [
+            AdminNewsController::class,
+            'update'
+        ]);
+
+        Route::delete('/news/{news}', [
+            AdminNewsController::class,
+            'destroy'
+        ]);
+
+        // Announcement Management
+        Route::get('/announcements', [
+            AdminAnnouncementController::class,
+            'index'
+        ]);
+
+        Route::post('/announcements', [
+            AdminAnnouncementController::class,
+            'store'
+        ]);
+
+        Route::get('/announcements/{announcement}', [
+            AdminAnnouncementController::class,
+            'show'
+        ]);
+
+        Route::post('/announcements/{announcement}', [
+            AdminAnnouncementController::class,
+            'update'
+        ]);
+
+        Route::delete('/announcements/{announcement}', [
+            AdminAnnouncementController::class,
+            'destroy'
+        ]);
+
+        // Training Management
+        Route::get('/trainings', [
+            AdminTrainingController::class,
+            'index'
+        ]);
+
+        Route::post('/trainings', [
+            AdminTrainingController::class,
+            'store'
+        ]);
+
+        Route::get('/trainings/{training}', [
+            AdminTrainingController::class,
+            'show'
+        ]);
+
+        Route::post('/trainings/{training}', [
+            AdminTrainingController::class,
+            'update'
+        ]);
+
+        Route::delete('/trainings/{training}', [
+            AdminTrainingController::class,
+            'destroy'
+        ]);
+
+        // Page Management
+        Route::get('/pages', [
+            AdminPageController::class,
+            'index'
+        ]);
+
+        Route::post('/pages', [
+            AdminPageController::class,
+            'store'
+        ]);
+
+        Route::get('/pages/{page}', [
+            AdminPageController::class,
+            'show'
+        ]);
+
+        Route::post('/pages/{page}', [
+            AdminPageController::class,
+            'update'
+        ]);
+
+        Route::delete('/pages/{page}', [
+            AdminPageController::class,
+            'destroy'
+        ]);
+
+        // Service Management
+        Route::get('/services', [
+            AdminServiceController::class,
+            'index'
+        ]);
+
+        Route::post('/services', [
+            AdminServiceController::class,
+            'store'
+        ]);
+
+        Route::get('/services/{service}', [
+            AdminServiceController::class,
+            'show'
+        ]);
+
+        Route::post('/services/{service}', [
+            AdminServiceController::class,
+            'update'
+        ]);
+
+        Route::delete('/services/{service}', [
+            AdminServiceController::class,
+            'destroy'
+        ]);
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Company Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('company')
+    ->middleware(['auth:sanctum', 'role:perusahaan'])
+    ->group(function () {
+
+        // Dashboard
+        Route::get('/dashboard', [
+            CompanyDashboardController::class,
+            'index'
+        ]);
+
+        // Profile
+        Route::get('/profile', [
+            CompanyController::class,
+            'show'
+        ]);
+
+        Route::put('/profile', [
+            CompanyController::class,
+            'update'
+        ]);
+
+        // Jobs
+        Route::get('/jobs', [
+            CompanyJobController::class,
+            'index'
+        ]);
+
+        Route::post('/jobs', [
+            CompanyJobController::class,
+            'store'
+        ]);
+
+        Route::get('/jobs/{job}', [
+            CompanyJobController::class,
+            'show'
+        ]);
+
+        Route::put('/jobs/{job}', [
+            CompanyJobController::class,
+            'update'
+        ]);
+
+        Route::delete('/jobs/{job}', [
+            CompanyJobController::class,
+            'destroy'
+        ]);
+
+        Route::post('/jobs/{job}/submit', [
+            CompanyJobController::class,
+            'submit'
+        ]);
+
+        // Account
+        Route::patch('/password', [
+            CompanyController::class,
+            'changePassword'
+        ]);
+
+        Route::delete('/account', [
+            CompanyController::class,
+            'destroy'
+        ]);
+    });

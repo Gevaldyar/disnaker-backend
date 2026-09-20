@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Support\Facades\Storage;
 use Database\Factories\JobFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'company_id',
@@ -23,27 +23,46 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'rejection_reason',
     'verified_at',
 ])]
-
 class Job extends Model
 {
     /** @use HasFactory<JobFactory> */
     use HasFactory;
 
+    /**
+     * Database table used by this model.
+     *
+     * Laravel's default "jobs" table is used for queues,
+     * while this model uses "job_vacancies" for job listings.
+     */
     protected $table = 'job_vacancies';
-    protected $appends = ['poster_url'];
+
+    /**
+     * Attributes appended to the JSON representation.
+     */
+    protected $appends = [
+        'poster_url',
+    ];
 
     /**
      * Get the public URL of the poster.
-    */
+     */
     protected function posterUrl(): Attribute
     {
         return Attribute::make(
-            get: fn ($value, array $attributes) =>
-                $attributes['poster']
-                    ? url(Storage::disk('public')->url($attributes['poster']))
-                    : null
+            get: function ($value, array $attributes): ?string {
+                $poster = $attributes['poster'] ?? null;
+
+                if (!$poster) {
+                    return null;
+                }
+
+                return url(
+                    Storage::disk('public')->url($poster)
+                );
+            }
         );
     }
+
     /**
      * Job belongs to a Company.
      */

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CompanyJobResource;
 use App\Models\Job;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ class CompanyJobController extends Controller
     /**
      * Display jobs owned by the authenticated company.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $company = $request->user()->company;
 
@@ -21,11 +22,11 @@ class CompanyJobController extends Controller
             ->latest()
             ->paginate(10);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar lowongan perusahaan berhasil diambil',
-            'data' => $jobs,
-        ]);
+        return CompanyJobResource::collection($jobs)
+            ->additional([
+                'success' => true,
+                'message' => 'Daftar lowongan perusahaan berhasil diambil',
+            ]);
     }
 
     /**
@@ -35,9 +36,21 @@ class CompanyJobController extends Controller
     {
         $company = $request->user()->company;
 
+        if ($company->status !== 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun perusahaan belum disetujui oleh Admin Disnaker',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'poster' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'poster' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
             'location' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'expires_at' => ['nullable', 'date'],
@@ -61,11 +74,13 @@ class CompanyJobController extends Controller
             'status' => 'draft',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Lowongan berhasil dibuat',
-            'data' => $job->fresh()->load('company'),
-        ], 201);
+        return (new CompanyJobResource($job->fresh()))
+            ->additional([
+                'success' => true,
+                'message' => 'Lowongan berhasil dibuat',
+            ])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -82,11 +97,12 @@ class CompanyJobController extends Controller
             ], 403);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail lowongan berhasil diambil',
-            'data' => $job->load('company'),
-        ]);
+        return (new CompanyJobResource($job->load('company')))
+            ->additional([
+                'success' => true,
+                'message' => 'Detail lowongan berhasil diambil',
+            ])
+            ->response();
     }
 
     /**
@@ -96,6 +112,13 @@ class CompanyJobController extends Controller
     {
         $company = $request->user()->company;
 
+        if ($company->status !== 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun perusahaan belum disetujui oleh Admin Disnaker',
+            ], 403);
+        }
+
         if ($job->company_id !== $company->id) {
             return response()->json([
                 'success' => false,
@@ -103,9 +126,21 @@ class CompanyJobController extends Controller
             ], 403);
         }
 
+        if (in_array($job->status, ['pending', 'expired'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lowongan dengan status ini tidak dapat diedit',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'poster' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'poster' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
             'location' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'expires_at' => ['nullable', 'date'],
@@ -119,7 +154,6 @@ class CompanyJobController extends Controller
         ];
 
         if ($request->hasFile('poster')) {
-            // Hapus poster lama jika ada.
             if ($job->poster) {
                 Storage::disk('public')->delete($job->poster);
             }
@@ -128,13 +162,32 @@ class CompanyJobController extends Controller
                 ->store('job-posters', 'public');
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Perubahan lowongan
+        |--------------------------------------------------------------------------
+        |
+        | Jika lowongan sebelumnya sudah approved atau rejected,
+        | perubahan akan dikembalikan ke draft agar dapat diproses
+        | kembali oleh Admin.
+        |
+        */
+
+        if (in_array($job->status, ['approved', 'rejected'], true)) {
+            $data['status'] = 'draft';
+            $data['published_at'] = null;
+            $data['verified_at'] = null;
+            $data['rejection_reason'] = null;
+        }
+
         $job->update($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Lowongan berhasil diperbarui',
-            'data' => $job->fresh()->load('company'),
-        ]);
+        return (new CompanyJobResource($job->fresh()))
+            ->additional([
+                'success' => true,
+                'message' => 'Lowongan berhasil diperbarui',
+            ])
+            ->response();
     }
 
     /**
@@ -165,7 +218,10 @@ class CompanyJobController extends Controller
             ], 422);
         }
 
-        if ($job->expires_at !== null && $job->expires_at->isBefore(today())) {
+        if (
+            $job->expires_at !== null &&
+            $job->expires_at->isBefore(today())
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'Masa berlaku lowongan sudah lewat',
@@ -174,13 +230,16 @@ class CompanyJobController extends Controller
 
         $job->update([
             'status' => 'pending',
+            'rejection_reason' => null,
+            'verified_at' => null,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Lowongan berhasil diajukan untuk verifikasi Admin',
-            'data' => $job->fresh()->load('company'),
-        ]);
+        return (new CompanyJobResource($job->fresh()))
+            ->additional([
+                'success' => true,
+                'message' => 'Lowongan berhasil diajukan untuk verifikasi Admin',
+            ])
+            ->response();
     }
 
     /**
@@ -195,7 +254,7 @@ class CompanyJobController extends Controller
                 'success' => false,
                 'message' => 'Akun perusahaan belum disetujui oleh Admin Disnaker',
             ], 403);
-    }
+        }
 
         if ($job->company_id !== $company->id) {
             return response()->json([
@@ -204,7 +263,13 @@ class CompanyJobController extends Controller
             ], 403);
         }
 
-        // Hapus poster dari storage jika ada.
+        if ($job->status === 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lowongan yang sedang menunggu verifikasi tidak dapat dihapus',
+            ], 422);
+        }
+
         if ($job->poster) {
             Storage::disk('public')->delete($job->poster);
         }

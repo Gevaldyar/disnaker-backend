@@ -6,28 +6,36 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
     /**
-     * Display all admin accounts.
+     * Menampilkan semua admin.
      */
     public function index(): JsonResponse
     {
-        $admins = User::where('role', 'admin')
+        $admins = User::query()
+            ->where('role', 'admin')
             ->latest()
-            ->paginate(10);
+            ->get([
+                'id',
+                'name',
+                'email',
+                'role',
+                'created_at',
+                'updated_at',
+            ]);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Daftar Admin berhasil diambil',
+            'message' => 'Daftar admin berhasil diambil.',
             'data' => $admins,
         ]);
     }
 
     /**
-     * Store a new admin account.
+     * Membuat admin baru.
      */
     public function store(Request $request): JsonResponse
     {
@@ -40,115 +48,142 @@ class AdminController extends Controller
         $admin = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => $validated['password'],
+            'password' => Hash::make($validated['password']),
             'role' => 'admin',
         ]);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Admin berhasil ditambahkan',
-            'data' => $admin,
+            'message' => 'Admin berhasil dibuat.',
+            'data' => $admin->only([
+                'id',
+                'name',
+                'email',
+                'role',
+                'created_at',
+                'updated_at',
+            ]),
         ], 201);
     }
 
     /**
-     * Display a specific admin.
+     * Menampilkan detail admin.
      */
     public function show(User $user): JsonResponse
     {
         if ($user->role !== 'admin') {
             return response()->json([
-                'success' => false,
-                'message' => 'Data Admin tidak ditemukan',
+                'message' => 'User yang diminta bukan admin.',
             ], 404);
         }
 
         return response()->json([
-            'success' => true,
-            'message' => 'Detail Admin berhasil diambil',
-            'data' => $user,
+            'message' => 'Data admin berhasil diambil.',
+            'data' => $user->only([
+                'id',
+                'name',
+                'email',
+                'role',
+                'created_at',
+                'updated_at',
+            ]),
         ]);
     }
 
     /**
-     * Update an admin account.
+     * Mengubah data admin.
      */
     public function update(Request $request, User $user): JsonResponse
     {
         if ($user->role !== 'admin') {
             return response()->json([
-                'success' => false,
-                'message' => 'Data Admin tidak ditemukan',
+                'message' => 'User yang diminta bukan admin.',
             ], 404);
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+
             'email' => [
+                'sometimes',
                 'required',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+
+            'password' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
         ]);
 
-        $data = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-        ];
-
-        if (!empty($validated['password'])) {
-            $data['password'] = $validated['password'];
+        if (array_key_exists('name', $validated)) {
+            $user->name = $validated['name'];
         }
 
-        $user->update($data);
+        if (array_key_exists('email', $validated)) {
+            $user->email = $validated['email'];
+        }
+
+        if (!empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+
+            // Token lama tidak berlaku lagi setelah password berubah.
+            $user->tokens()->delete();
+        }
+
+        $user->save();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Data Admin berhasil diperbarui',
-            'data' => $user->fresh(),
+            'message' => 'Data admin berhasil diperbarui.',
+            'data' => $user->only([
+                'id',
+                'name',
+                'email',
+                'role',
+                'created_at',
+                'updated_at',
+            ]),
         ]);
     }
 
     /**
-     * Delete an admin account.
+     * Menghapus admin.
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
         if ($user->role !== 'admin') {
             return response()->json([
-                'success' => false,
-                'message' => 'Data Admin tidak ditemukan',
+                'message' => 'User yang diminta bukan admin.',
             ], 404);
         }
 
-        // Admin tidak boleh menghapus akun sendiri.
-        if ($user->id === $request->user()->id) {
+        // Admin tidak boleh menghapus dirinya sendiri.
+        if ($request->user()->id === $user->id) {
             return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak dapat menghapus akun Admin yang sedang digunakan',
-            ], 422);
+                'message' => 'Admin tidak dapat menghapus akun sendiri.',
+            ], 403);
         }
 
-        // Jangan sampai sistem tidak memiliki Admin sama sekali.
+        // Pastikan masih ada minimal satu admin.
         $adminCount = User::where('role', 'admin')->count();
 
         if ($adminCount <= 1) {
             return response()->json([
-                'success' => false,
-                'message' => 'Admin terakhir tidak dapat dihapus',
-            ], 422);
+                'message' => 'Admin terakhir tidak dapat dihapus.',
+            ], 403);
         }
 
-        // Cabut token Admin yang akan dihapus.
+        // Hapus semua token admin yang akan dihapus.
         $user->tokens()->delete();
 
         $user->delete();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Admin berhasil dihapus',
+            'message' => 'Admin berhasil dihapus.',
         ]);
     }
 }
