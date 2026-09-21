@@ -3,43 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AnnouncementResource;
 use App\Models\Announcement;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class AnnouncementController extends Controller
 {
-    /**
-     * Display published announcements.
-     */
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
-        $announcements = Announcement::where('status', 'published')
+        $announcements = Announcement::query()
+            ->where('status', 'published')
             ->latest('published_at')
             ->paginate(10);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar pengumuman berhasil diambil',
-            'data' => $announcements,
-        ]);
+        return AnnouncementResource::collection($announcements);
     }
 
-    /**
-     * Display a published announcement.
-     */
-    public function show(Announcement $announcement): JsonResponse
+    public function show(Announcement $announcement): AnnouncementResource
     {
         if ($announcement->status !== 'published') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pengumuman tidak ditemukan',
-            ], 404);
+            abort(404);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail pengumuman berhasil diambil',
-            'data' => $announcement,
-        ]);
+        return new AnnouncementResource($announcement);
     }
 }

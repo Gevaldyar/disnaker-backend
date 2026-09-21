@@ -3,43 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\NewsResource;
 use App\Models\News;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class NewsController extends Controller
 {
-    /**
-     * Display published news.
-     */
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
-        $news = News::where('status', 'published')
+        $news = News::query()
+            ->where('status', 'published')
             ->latest('published_at')
             ->paginate(10);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar berita berhasil diambil',
-            'data' => $news,
-        ]);
+        return NewsResource::collection($news);
     }
 
-    /**
-     * Display a published news.
-     */
-    public function show(News $news): JsonResponse
+    public function show(News $news): NewsResource
     {
         if ($news->status !== 'published') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Berita tidak ditemukan',
-            ], 404);
+            abort(404);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail berita berhasil diambil',
-            'data' => $news,
-        ]);
+        return new NewsResource($news);
     }
 }

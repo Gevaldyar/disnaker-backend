@@ -3,47 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ServiceResource;
 use App\Models\Service;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ServiceController extends Controller
 {
-    /**
-     * Display published services.
-     */
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
-        $services = Service::where('status', 'published')
-            ->orderBy('title')
-            ->get();
+        $services = Service::query()
+            ->where('status', 'published')
+            ->latest()
+            ->paginate(10);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar layanan berhasil diambil',
-            'data' => $services,
-        ]);
+        return ServiceResource::collection($services);
     }
 
-    /**
-     * Display a published service by slug.
-     */
-    public function show(string $slug): JsonResponse
+    public function show(string $slug): ServiceResource
     {
-        $service = Service::where('slug', $slug)
+        $service = Service::query()
+            ->where('slug', $slug)
             ->where('status', 'published')
-            ->first();
+            ->firstOrFail();
 
-        if (!$service) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Layanan tidak ditemukan',
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Detail layanan berhasil diambil',
-            'data' => $service,
-        ]);
+        return new ServiceResource($service);
     }
 }

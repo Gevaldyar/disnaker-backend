@@ -3,47 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PageResource;
 use App\Models\Page;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PageController extends Controller
 {
-    /**
-     * Display all published pages.
-     */
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
-        $pages = Page::where('status', 'published')
-            ->orderBy('title')
+        $pages = Page::query()
+            ->where('status', 'published')
+            ->latest()
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar halaman berhasil diambil',
-            'data' => $pages,
-        ]);
+        return PageResource::collection($pages);
     }
 
-    /**
-     * Display a published page by slug.
-     */
-    public function show(string $slug): JsonResponse
+    public function show(string $slug): PageResource
     {
-        $page = Page::where('slug', $slug)
+        $page = Page::query()
+            ->where('slug', $slug)
             ->where('status', 'published')
-            ->first();
+            ->firstOrFail();
 
-        if (!$page) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Halaman tidak ditemukan',
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Halaman berhasil diambil',
-            'data' => $page,
-        ]);
+        return new PageResource($page);
     }
 }
