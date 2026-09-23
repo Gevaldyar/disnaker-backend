@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\JobSeekerProfileController;
 use App\Http\Controllers\Api\AdminAnnouncementController;
 use App\Http\Controllers\Api\AdminCompanyController;
 use App\Http\Controllers\Api\AdminController;
@@ -85,6 +86,22 @@ Route::post(
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+
+    // Job Seeker Profile
+    Route::get('/job-seeker/profile', [
+        JobSeekerProfileController::class,
+        'show'
+    ]);
+
+    Route::put('/job-seeker/profile', [
+        JobSeekerProfileController::class,
+        'update'
+    ]);
+
+    Route::delete('/job-seeker/profile', [
+        JobSeekerProfileController::class,
+        'destroy'
+    ]);
 });
 
 /*
