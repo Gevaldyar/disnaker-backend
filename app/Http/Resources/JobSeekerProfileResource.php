@@ -46,6 +46,14 @@ class JobSeekerProfileResource extends JsonResource
                 $this->whenLoaded('skills')
             ),
 
+            'educations' => JobSeekerEducationResource::collection(
+                $this->whenLoaded('educations')
+            ),
+
+            'experiences' => JobSeekerExperienceResource::collection(
+                $this->whenLoaded('experiences')
+            ),
+
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

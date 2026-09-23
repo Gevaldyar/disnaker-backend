@@ -24,6 +24,8 @@ use App\Http\Controllers\Api\NewsController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\TrainingController;
+use App\Http\Controllers\Api\JobSeekerEducationController;
+use App\Http\Controllers\Api\JobSeekerExperienceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -133,6 +135,46 @@ Route::prefix('job-seeker')
 
         Route::delete('/skills/{skill}', [
             JobSeekerSkillController::class,
+            'destroy'
+        ]);
+
+        Route::get('/educations', [
+            JobSeekerEducationController::class,
+            'index'
+        ]);
+
+        Route::post('/educations', [
+            JobSeekerEducationController::class,
+            'store'
+        ]);
+
+        Route::put('/educations/{education}', [
+            JobSeekerEducationController::class,
+            'update'
+        ]);
+
+        Route::delete('/educations/{education}', [
+            JobSeekerEducationController::class,
+            'destroy'
+        ]);
+
+        Route::get('/experiences', [
+            JobSeekerExperienceController::class,
+            'index'
+        ]);
+
+        Route::post('/experiences', [
+            JobSeekerExperienceController::class,
+            'store'
+        ]);
+
+        Route::put('/experiences/{experience}', [
+            JobSeekerExperienceController::class,
+            'update'
+        ]);
+
+        Route::delete('/experiences/{experience}', [
+            JobSeekerExperienceController::class,
             'destroy'
         ]);
     });

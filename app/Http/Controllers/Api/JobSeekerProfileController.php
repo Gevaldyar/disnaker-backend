@@ -11,38 +11,66 @@ use Illuminate\Support\Facades\Storage;
 class JobSeekerProfileController extends Controller
 {
     /**
-     * Display the authenticated job seeker's profile.
+     * Menampilkan profil pencari kerja yang sedang login.
      */
     public function show(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        $profile = $user->jobSeekerProfile?->load('skills');
+        $profile = $user->jobSeekerProfile?->load([
+            'skills',
+            'educations',
+            'experiences',
+        ]);
 
         if (!$profile) {
             return response()->json([
                 'success' => false,
-                'message' => 'Profil pencari kerja belum dibuat',
+                'message' => 'Profil pencari kerja belum dibuat.',
             ], 404);
         }
 
         return (new JobSeekerProfileResource($profile))
             ->additional([
                 'success' => true,
-                'message' => 'Profil pencari kerja berhasil diambil',
+                'message' => 'Profil pencari kerja berhasil diambil.',
             ])
             ->response();
     }
 
     /**
-     * Create or update the authenticated job seeker's profile.
+     * Membuat atau memperbarui profil.
      */
     public function update(Request $request): JsonResponse
     {
         $user = $request->user();
 
+        /*
+         * Normalisasi is_public.
+         *
+         * Form-data dari Postman/browser sering mengirim
+         * boolean sebagai string "true"/"false".
+         */
+        if ($request->has('is_public')) {
+            $value = $request->input('is_public');
+
+            if ($value === 'true' || $value === '1' || $value === 1) {
+                $request->merge([
+                    'is_public' => true,
+                ]);
+            } elseif ($value === 'false' || $value === '0' || $value === 0) {
+                $request->merge([
+                    'is_public' => false,
+                ]);
+            }
+        }
+
         $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
+            'full_name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
 
             'photo' => [
                 'nullable',
@@ -51,24 +79,75 @@ class JobSeekerProfileController extends Controller
                 'max:5120',
             ],
 
-            'headline' => ['nullable', 'string', 'max:255'],
-            'bio' => ['nullable', 'string'],
+            'cv' => [
+                'nullable',
+                'file',
+                'mimes:pdf,doc,docx',
+                'max:5120',
+            ],
 
-            'phone' => ['nullable', 'string', 'max:30'],
-            'city' => ['nullable', 'string', 'max:100'],
-            'address' => ['nullable', 'string'],
+            'headline' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'birth_date' => ['nullable', 'date'],
-            'gender' => ['nullable', 'string', 'max:30'],
+            'bio' => [
+                'nullable',
+                'string',
+            ],
 
-            'portfolio_url' => ['nullable', 'url', 'max:255'],
-            'linkedin_url' => ['nullable', 'url', 'max:255'],
+            'phone' => [
+                'nullable',
+                'string',
+                'max:30',
+            ],
 
-            'is_public' => ['nullable', 'boolean'],
+            'city' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+
+            'address' => [
+                'nullable',
+                'string',
+            ],
+
+            'birth_date' => [
+                'nullable',
+                'date',
+            ],
+
+            'gender' => [
+                'nullable',
+                'string',
+                'max:30',
+            ],
+
+            'portfolio_url' => [
+                'nullable',
+                'url',
+                'max:255',
+            ],
+
+            'linkedin_url' => [
+                'nullable',
+                'url',
+                'max:255',
+            ],
+
+            'is_public' => [
+                'nullable',
+                'boolean',
+            ],
         ]);
 
-        $profile = $user->jobSeekerProfile?->load('skills');
+        $profile = $user->jobSeekerProfile;
 
+        /*
+         * Jika profile belum ada, buat baru.
+         */
         if (!$profile) {
             $profile = $user->jobSeekerProfile()->create([
                 'full_name' => $validated['full_name'],
@@ -95,31 +174,61 @@ class JobSeekerProfileController extends Controller
                 'gender' => $validated['gender'] ?? null,
                 'portfolio_url' => $validated['portfolio_url'] ?? null,
                 'linkedin_url' => $validated['linkedin_url'] ?? null,
-                'is_public' => $validated['is_public'] ?? $profile->is_public,
+                'is_public' =>
+                    array_key_exists('is_public', $validated)
+                        ? $validated['is_public']
+                        : $profile->is_public,
             ]);
         }
 
+        /*
+         * Upload foto baru.
+         */
         if ($request->hasFile('photo')) {
             if ($profile->photo) {
                 Storage::disk('public')->delete($profile->photo);
             }
 
             $profile->update([
-                'photo' => $request->file('photo')
-                    ->store('job-seekers/photos', 'public'),
+                'photo' => $request->file('photo')->store(
+                    'job-seekers/photos',
+                    'public'
+                ),
             ]);
         }
+
+        /*
+         * Upload CV baru.
+         */
+        if ($request->hasFile('cv')) {
+            if ($profile->cv) {
+                Storage::disk('public')->delete($profile->cv);
+            }
+
+            $profile->update([
+                'cv' => $request->file('cv')->store(
+                    'job-seekers/cv',
+                    'public'
+                ),
+            ]);
+        }
+
+        $profile->load([
+            'skills',
+            'educations',
+            'experiences',
+        ]);
 
         return (new JobSeekerProfileResource($profile->fresh()))
             ->additional([
                 'success' => true,
-                'message' => 'Profil pencari kerja berhasil disimpan',
+                'message' => 'Profil pencari kerja berhasil disimpan.',
             ])
             ->response();
     }
 
     /**
-     * Delete the authenticated job seeker's profile.
+     * Menghapus profil pencari kerja.
      */
     public function destroy(Request $request): JsonResponse
     {
@@ -128,7 +237,7 @@ class JobSeekerProfileController extends Controller
         if (!$profile) {
             return response()->json([
                 'success' => false,
-                'message' => 'Profil pencari kerja tidak ditemukan',
+                'message' => 'Profil pencari kerja tidak ditemukan.',
             ], 404);
         }
 
@@ -144,7 +253,7 @@ class JobSeekerProfileController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Profil pencari kerja berhasil dihapus',
+            'message' => 'Profil pencari kerja berhasil dihapus.',
         ]);
     }
 }
