@@ -17,7 +17,7 @@ class JobSeekerProfileController extends Controller
     {
         $user = $request->user();
 
-        $profile = $user->jobSeekerProfile;
+        $profile = $user->jobSeekerProfile?->load('skills');
 
         if (!$profile) {
             return response()->json([
@@ -67,7 +67,7 @@ class JobSeekerProfileController extends Controller
             'is_public' => ['nullable', 'boolean'],
         ]);
 
-        $profile = $user->jobSeekerProfile;
+        $profile = $user->jobSeekerProfile?->load('skills');
 
         if (!$profile) {
             $profile = $user->jobSeekerProfile()->create([

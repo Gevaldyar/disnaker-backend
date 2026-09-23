@@ -41,6 +41,10 @@ class JobSeekerProfileResource extends JsonResource
                 : null,
 
             'is_public' => $this->is_public,
+            
+            'skills' => JobSeekerSkillResource::collection(
+                $this->whenLoaded('skills')
+            ),
 
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

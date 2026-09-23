@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\JobSeekerSkill;
 
 class JobSeekerProfile extends Model
 {
@@ -30,6 +32,14 @@ class JobSeekerProfile extends Model
             'birth_date' => 'date',
             'is_public' => 'boolean',
         ];
+    }
+
+    /**
+    * Get the skills owned by the job seeker.
+    */
+    public function skills(): HasMany
+    {
+    return $this->hasMany(JobSeekerSkill::class);
     }
 
     /**

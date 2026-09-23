@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\JobSeekerProfileController;
 use App\Http\Controllers\Api\AdminAnnouncementController;
 use App\Http\Controllers\Api\AdminCompanyController;
 use App\Http\Controllers\Api\AdminController;
@@ -19,6 +18,8 @@ use App\Http\Controllers\Api\CompanyJobController;
 use App\Http\Controllers\Api\CompanyRegistrationController;
 use App\Http\Controllers\Api\EmploymentStatisticController;
 use App\Http\Controllers\Api\JobController;
+use App\Http\Controllers\Api\JobSeekerProfileController;
+use App\Http\Controllers\Api\JobSeekerSkillController;
 use App\Http\Controllers\Api\NewsController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\ServiceController;
@@ -86,23 +87,55 @@ Route::post(
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-
-    // Job Seeker Profile
-    Route::get('/job-seeker/profile', [
-        JobSeekerProfileController::class,
-        'show'
-    ]);
-
-    Route::put('/job-seeker/profile', [
-        JobSeekerProfileController::class,
-        'update'
-    ]);
-
-    Route::delete('/job-seeker/profile', [
-        JobSeekerProfileController::class,
-        'destroy'
-    ]);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Job Seeker Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('job-seeker')
+    ->middleware(['auth:sanctum', 'role:pencari_kerja'])
+    ->group(function () {
+
+        // Profile
+        Route::get('/profile', [
+            JobSeekerProfileController::class,
+            'show'
+        ]);
+
+        Route::put('/profile', [
+            JobSeekerProfileController::class,
+            'update'
+        ]);
+
+        Route::delete('/profile', [
+            JobSeekerProfileController::class,
+            'destroy'
+        ]);
+
+        // Skills
+        Route::get('/skills', [
+            JobSeekerSkillController::class,
+            'index'
+        ]);
+
+        Route::post('/skills', [
+            JobSeekerSkillController::class,
+            'store'
+        ]);
+
+        Route::put('/skills/{skill}', [
+            JobSeekerSkillController::class,
+            'update'
+        ]);
+
+        Route::delete('/skills/{skill}', [
+            JobSeekerSkillController::class,
+            'destroy'
+        ]);
+    });
 
 /*
 |--------------------------------------------------------------------------
