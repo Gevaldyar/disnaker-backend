@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\TrainingController;
 use App\Http\Controllers\Api\JobSeekerEducationController;
 use App\Http\Controllers\Api\JobSeekerExperienceController;
+use App\Http\Controllers\Api\JobSeekerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -66,6 +67,16 @@ Route::get('/pages/{slug}', [PageController::class, 'show']);
 
 Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/{slug}', [ServiceController::class, 'show']);
+
+Route::get('/job-seekers', [
+    JobSeekerController::class,
+    'index'
+]);
+
+Route::get('/job-seekers/{jobSeeker}', [
+    JobSeekerController::class,
+    'show'
+]);
 
 /*
 |--------------------------------------------------------------------------
