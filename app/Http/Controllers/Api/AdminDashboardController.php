@@ -166,18 +166,19 @@ class AdminDashboardController extends Controller
             ]);
 
             /*
-|--------------------------------------------------------------------------
-| Statistik notifikasi Admin
-|--------------------------------------------------------------------------
-*/
+            |--------------------------------------------------------------------------
+            | Statistik notifikasi Admin
+            |--------------------------------------------------------------------------
+            */
 
-$notificationStatistics = [
-    'unread' => $request->user()
-        ->unreadNotifications()
-        ->count(),
-];
+            $notificationStatistics = [
+                'unread' => $request->user()
+                    ->unreadNotifications()
+            ->count(),
+            ];
 
         return response()->json([
+            'success' => true,
             'message' => 'Data dashboard admin berhasil diambil.',
 
             'data' => [
@@ -188,6 +189,8 @@ $notificationStatistics = [
                 'job_seekers' => $jobSeekerStatistics,
 
                 'content' => $contentStatistics,
+
+                'notifications' => $notificationStatistics,
 
                 'pending_companies' => $pendingCompanies,
 
