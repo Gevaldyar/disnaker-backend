@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Notifications\AdminPendingNotification;
+use Illuminate\Support\Facades\Notification;
 
 class CompanyRegistrationController extends Controller
 {
@@ -56,6 +58,19 @@ class CompanyRegistrationController extends Controller
                 'company' => $company,
             ];
         });
+
+        $admins = User::where('role', 'admin')->get();
+
+Notification::send(
+    $admins,
+    new AdminPendingNotification(
+        'company_registered',
+        'Perusahaan Baru',
+        'Ada perusahaan baru yang mendaftar dan menunggu verifikasi.',
+        $result['company']->id,
+        null
+    )
+);
 
         return response()->json([
             'success' => true,

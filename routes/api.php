@@ -27,6 +27,9 @@ use App\Http\Controllers\Api\TrainingController;
 use App\Http\Controllers\Api\JobSeekerEducationController;
 use App\Http\Controllers\Api\JobSeekerExperienceController;
 use App\Http\Controllers\Api\JobSeekerController;
+use App\Http\Controllers\Api\CompanyJobSeekerController;
+use App\Http\Controllers\CompanyNotificationController;
+use App\Http\Controllers\AdminNotificationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -188,6 +191,11 @@ Route::prefix('job-seeker')
             JobSeekerExperienceController::class,
             'destroy'
         ]);
+
+        Route::get('/profile/cv', [
+        JobSeekerProfileController::class,
+        'downloadCv'
+        ])->name('job-seeker.profile.cv');
     });
 
 /*
@@ -454,6 +462,26 @@ Route::prefix('admin')
             AdminServiceController::class,
             'destroy'
         ]);
+
+        Route::get('/notifications', [
+            AdminNotificationController::class,
+            'index'
+        ]);
+
+        Route::get('/notifications/unread-count', [
+            AdminNotificationController::class,
+            'unreadCount'
+        ]);
+
+        Route::patch('/notifications/{notification}/read', [
+            AdminNotificationController::class,
+            'markAsRead'
+        ]);
+
+        Route::patch('/notifications/read-all', [
+            AdminNotificationController::class,
+            'markAllAsRead'
+        ]);
     });
 
 /*
@@ -523,5 +551,32 @@ Route::prefix('company')
         Route::delete('/account', [
             CompanyController::class,
             'destroy'
+        ]);
+
+        Route::get('/job-seekers/{jobSeeker}', [
+            CompanyJobSeekerController::class,
+            'show'
+        ]);
+
+        Route::get('/job-seekers/{jobSeeker}/cv', [
+            CompanyJobSeekerController::class,
+            'downloadCv'
+        ])->name('company.job-seekers.cv');
+
+        Route::get('/notifications', [CompanyNotificationController::class, 'index']);
+
+        Route::get('/notifications/unread-count', [
+            CompanyNotificationController::class,
+            'unreadCount'
+        ]);
+
+        Route::patch('/notifications/{notification}/read', [
+            CompanyNotificationController::class,
+            'markAsRead'
+        ]);
+
+        Route::patch('/notifications/read-all', [
+            CompanyNotificationController::class,
+            'markAllAsRead'
         ]);
     });

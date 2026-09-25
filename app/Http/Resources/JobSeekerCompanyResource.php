@@ -5,42 +5,40 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class JobSeekerProfileResource extends JsonResource
+class JobSeekerCompanyResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
-            'user_id' => $this->user_id,
 
             'full_name' => $this->full_name,
+
             'photo_url' => $this->photo
                 ? asset('storage/' . $this->photo)
                 : null,
 
             'headline' => $this->headline,
             'bio' => $this->bio,
+            'city' => $this->city,
+            'gender' => $this->gender,
 
             'phone' => $this->phone,
-            'city' => $this->city,
-            'address' => $this->address,
 
-            'birth_date' => $this->birth_date?->format('Y-m-d'),
-            'gender' => $this->gender,
+            'email' => $this->user?->email,
 
             'portfolio_url' => $this->portfolio_url,
             'linkedin_url' => $this->linkedin_url,
 
+            'cv_available' => !empty($this->cv),
+
             'cv_url' => $this->cv
-                ? route('job-seeker.profile.cv')
+                ? route(
+                    'company.job-seekers.cv',
+                    ['jobSeeker' => $this->id]
+                )
                 : null,
-            'is_public' => $this->is_public,
-            
+
             'skills' => JobSeekerSkillResource::collection(
                 $this->whenLoaded('skills')
             ),
@@ -52,9 +50,6 @@ class JobSeekerProfileResource extends JsonResource
             'experiences' => JobSeekerExperienceResource::collection(
                 $this->whenLoaded('experiences')
             ),
-
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

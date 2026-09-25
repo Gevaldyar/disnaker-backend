@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Job;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Notifications\JobStatusNotification;
 
 class AdminJobController extends Controller
 {
@@ -61,6 +62,16 @@ class AdminJobController extends Controller
             'published_at' => now(),
         ]);
 
+        /*
+         * Kirim notifikasi ke akun perusahaan
+         * setelah lowongan berhasil disetujui.
+         */
+        $job->load('company.user');
+
+        $job->company?->user?->notify(
+            new JobStatusNotification($job, 'approved')
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Lowongan berhasil disetujui',
@@ -90,6 +101,17 @@ class AdminJobController extends Controller
             'verified_at' => now(),
             'published_at' => null,
         ]);
+
+        /*
+         * Kirim notifikasi ke akun perusahaan
+         * setelah lowongan ditolak.
+         * Alasan penolakan ikut disimpan dalam notification.
+         */
+        $job->load('company.user');
+
+        $job->company?->user?->notify(
+            new JobStatusNotification($job, 'rejected')
+        );
 
         return response()->json([
             'success' => true,

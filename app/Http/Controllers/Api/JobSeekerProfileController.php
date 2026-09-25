@@ -202,13 +202,13 @@ class JobSeekerProfileController extends Controller
          */
         if ($request->hasFile('cv')) {
             if ($profile->cv) {
-                Storage::disk('public')->delete($profile->cv);
+                Storage::disk('local')->delete($profile->cv);
             }
 
             $profile->update([
                 'cv' => $request->file('cv')->store(
                     'job-seekers/cv',
-                    'public'
+                    'local'
                 ),
             ]);
         }
@@ -228,6 +228,41 @@ class JobSeekerProfileController extends Controller
     }
 
     /**
+ * Download CV milik pencari kerja yang sedang login.
+ */
+public function downloadCv(Request $request)
+{
+    $profile = $request->user()->jobSeekerProfile;
+
+    if (!$profile) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Profil pencari kerja belum dibuat.',
+        ], 404);
+    }
+
+    if (!$profile->cv) {
+        return response()->json([
+            'success' => false,
+            'message' => 'CV belum diunggah.',
+        ], 404);
+    }
+
+    if (!Storage::disk('local')->exists($profile->cv)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'File CV tidak ditemukan.',
+        ], 404);
+    }
+
+    return Storage::disk('local')->download(
+        $profile->cv,
+        'CV-' . $profile->full_name . '.' .
+        pathinfo($profile->cv, PATHINFO_EXTENSION)
+    );
+    }
+    
+    /**
      * Menghapus profil pencari kerja.
      */
     public function destroy(Request $request): JsonResponse
@@ -246,7 +281,7 @@ class JobSeekerProfileController extends Controller
         }
 
         if ($profile->cv) {
-            Storage::disk('public')->delete($profile->cv);
+            Storage::disk('local')->delete($profile->cv);
         }
 
         $profile->delete();
@@ -255,5 +290,7 @@ class JobSeekerProfileController extends Controller
             'success' => true,
             'message' => 'Profil pencari kerja berhasil dihapus.',
         ]);
+
+    
     }
 }

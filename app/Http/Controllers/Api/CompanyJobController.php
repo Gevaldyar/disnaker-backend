@@ -8,6 +8,9 @@ use App\Models\Job;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Models\User;
+use App\Notifications\AdminPendingNotification;
+use Illuminate\Support\Facades\Notification;
 
 class CompanyJobController extends Controller
 {
@@ -229,12 +232,25 @@ class CompanyJobController extends Controller
         }
 
         $job->update([
-            'status' => 'pending',
-            'rejection_reason' => null,
-            'verified_at' => null,
-        ]);
+    'status' => 'pending',
+    'rejection_reason' => null,
+    'verified_at' => null,
+]);
 
-        return (new CompanyJobResource($job->fresh()))
+$admins = User::where('role', 'admin')->get();
+
+Notification::send(
+    $admins,
+    new AdminPendingNotification(
+        'job_submitted',
+        'Lowongan Baru Menunggu Verifikasi',
+        'Lowongan "' . $job->title . '" dari perusahaan "' . $company->name . '" menunggu persetujuan Admin.',
+        $company->id,
+        $job->id
+    )
+);
+
+return (new CompanyJobResource($job->fresh()))
             ->additional([
                 'success' => true,
                 'message' => 'Lowongan berhasil diajukan untuk verifikasi Admin',

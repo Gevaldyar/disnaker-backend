@@ -33,7 +33,7 @@ class JobSeekerProfileFileTest extends TestCase
 
     public function test_job_seeker_can_upload_cv(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $user = $this->createJobSeeker();
 
@@ -63,7 +63,7 @@ class JobSeekerProfileFileTest extends TestCase
 
         $this->assertNotNull($profile->cv);
 
-        Storage::disk('public')->assertExists(
+        Storage::disk('local')->assertExists(
             $profile->cv
         );
     }

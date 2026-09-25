@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\User;
+use App\Notifications\AdminPendingNotification;
+use Illuminate\Support\Facades\Notification;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -74,6 +77,23 @@ class CompanyController extends Controller
             'rejection_reason' => null,
             'verified_at' => null,
         ]);
+
+        // -------------------------------------------------------------------
+        // Penambahan Kode Notifikasi ke Admin
+        // -------------------------------------------------------------------
+        $admins = User::where('role', 'admin')->get();
+
+        Notification::send(
+            $admins,
+            new AdminPendingNotification(
+                'company_updated', // diubah sedikit agar sesuai dengan konteks update
+                'Profil Perusahaan Diperbarui', 
+                'Ada perusahaan yang memperbarui profil dan menunggu verifikasi ulang.',
+                $company->id,
+                null
+            )
+        );
+        // -------------------------------------------------------------------
 
         return response()->json([
             'success' => true,
