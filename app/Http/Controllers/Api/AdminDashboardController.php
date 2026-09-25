@@ -165,6 +165,18 @@ class AdminDashboardController extends Controller
                 'created_at',
             ]);
 
+            /*
+|--------------------------------------------------------------------------
+| Statistik notifikasi Admin
+|--------------------------------------------------------------------------
+*/
+
+$notificationStatistics = [
+    'unread' => $request->user()
+        ->unreadNotifications()
+        ->count(),
+];
+
         return response()->json([
             'message' => 'Data dashboard admin berhasil diambil.',
 
