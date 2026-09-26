@@ -165,19 +165,46 @@ class JobSeekerProfileController extends Controller
         } else {
             $profile->update([
                 'full_name' => $validated['full_name'],
-                'headline' => $validated['headline'] ?? null,
-                'bio' => $validated['bio'] ?? null,
-                'phone' => $validated['phone'] ?? null,
-                'city' => $validated['city'] ?? null,
-                'address' => $validated['address'] ?? null,
-                'birth_date' => $validated['birth_date'] ?? null,
-                'gender' => $validated['gender'] ?? null,
-                'portfolio_url' => $validated['portfolio_url'] ?? null,
-                'linkedin_url' => $validated['linkedin_url'] ?? null,
-                'is_public' =>
-                    array_key_exists('is_public', $validated)
-                        ? $validated['is_public']
-                        : $profile->is_public,
+
+                'headline' => array_key_exists('headline', $validated)
+                    ? $validated['headline']
+                    : $profile->headline,
+
+                'bio' => array_key_exists('bio', $validated)
+                    ? $validated['bio']
+                    : $profile->bio,
+
+                'phone' => array_key_exists('phone', $validated)
+                    ? $validated['phone']
+                    : $profile->phone,
+
+                'city' => array_key_exists('city', $validated)
+                    ? $validated['city']
+                    : $profile->city,
+
+                'address' => array_key_exists('address', $validated)
+                    ? $validated['address']
+                    : $profile->address,
+
+                'birth_date' => array_key_exists('birth_date', $validated)
+                    ? $validated['birth_date']
+                    : $profile->birth_date,
+
+                'gender' => array_key_exists('gender', $validated)
+                    ? $validated['gender']
+                    : $profile->gender,
+
+                'portfolio_url' => array_key_exists('portfolio_url', $validated)
+                    ? $validated['portfolio_url']
+                    : $profile->portfolio_url,
+
+                'linkedin_url' => array_key_exists('linkedin_url', $validated)
+                    ? $validated['linkedin_url']
+                    : $profile->linkedin_url,
+
+                'is_public' => array_key_exists('is_public', $validated)
+                    ? $validated['is_public']
+                    : $profile->is_public,
             ]);
         }
 
@@ -227,70 +254,68 @@ class JobSeekerProfileController extends Controller
             ->response();
     }
 
-    /**
- * Download CV milik pencari kerja yang sedang login.
- */
-public function downloadCv(Request $request)
-{
-    $profile = $request->user()->jobSeekerProfile;
+        /**
+         * Download CV milik pencari kerja yang sedang login.
+         */
+        public function downloadCv(Request $request)
+        {
+            $profile = $request->user()->jobSeekerProfile;
 
-    if (!$profile) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Profil pencari kerja belum dibuat.',
-        ], 404);
-    }
+            if (!$profile) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Profil pencari kerja belum dibuat.',
+                ], 404);
+            }
 
-    if (!$profile->cv) {
-        return response()->json([
-            'success' => false,
-            'message' => 'CV belum diunggah.',
-        ], 404);
-    }
+            if (!$profile->cv) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'CV belum diunggah.',
+                ], 404);
+            }
 
-    if (!Storage::disk('local')->exists($profile->cv)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'File CV tidak ditemukan.',
-        ], 404);
-    }
+            if (!Storage::disk('local')->exists($profile->cv)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File CV tidak ditemukan.',
+                ], 404);
+            }
 
-    return Storage::disk('local')->download(
-        $profile->cv,
-        'CV-' . $profile->full_name . '.' .
-        pathinfo($profile->cv, PATHINFO_EXTENSION)
-    );
-    }
-    
-    /**
-     * Menghapus profil pencari kerja.
-     */
-    public function destroy(Request $request): JsonResponse
-    {
-        $profile = $request->user()->jobSeekerProfile;
+            return Storage::disk('local')->download(
+                $profile->cv,
+                'CV-' . $profile->full_name . '.' .
+                pathinfo($profile->cv, PATHINFO_EXTENSION)
+            );
+        }
 
-        if (!$profile) {
+        /**
+         * Menghapus profil pencari kerja.
+         */
+        public function destroy(Request $request): JsonResponse
+        {
+            $profile = $request->user()->jobSeekerProfile;
+
+            if (!$profile) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Profil pencari kerja tidak ditemukan.',
+                ], 404);
+            }
+
+            if ($profile->photo) {
+                Storage::disk('public')->delete($profile->photo);
+            }
+
+            if ($profile->cv) {
+                Storage::disk('local')->delete($profile->cv);
+            }
+
+            $profile->delete();
+
             return response()->json([
-                'success' => false,
-                'message' => 'Profil pencari kerja tidak ditemukan.',
-            ], 404);
+                'success' => true,
+                'message' => 'Profil pencari kerja berhasil dihapus.',
+            ]);
         }
-
-        if ($profile->photo) {
-            Storage::disk('public')->delete($profile->photo);
-        }
-
-        if ($profile->cv) {
-            Storage::disk('local')->delete($profile->cv);
-        }
-
-        $profile->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Profil pencari kerja berhasil dihapus.',
-        ]);
-
-    
     }
-}
