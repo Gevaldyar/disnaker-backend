@@ -109,7 +109,16 @@ Gunakan token pada header:
 Authorization: Bearer TOKEN
 ```
 
-## 5.2 Current User
+## 5.2 Registration
+
+Registrasi publik menggunakan satu endpoint dengan pilihan role:
+
+```text
+pencari_kerja
+perusahaan
+```
+
+## 5.3 Current User
 
 ```http
 GET /api/me
@@ -117,7 +126,7 @@ GET /api/me
 
 Authentication: `auth:sanctum`
 
-## 5.3 Logout
+## 5.4 Logout
 
 ```http
 POST /api/logout
@@ -1342,6 +1351,8 @@ Sebelum mulai integrasi frontend:
 - [ ] Implement login dan penyimpanan Bearer Token
 - [ ] Implement public jobs
 - [ ] Implement public job seeker
+- [ ] Implement registration dengan pilihan role `pencari_kerja` atau `perusahaan`.
+- [ ] Redirect/flow berbeda berdasarkan role setelah registrasi atau login.
 - [ ] Implement company dashboard
 - [ ] Implement company jobs
 - [ ] Implement company notifications
@@ -1380,11 +1391,14 @@ GET  /api/job-seekers/{jobSeeker}
 ## Authentication
 
 ```text
+POST /api/register
 POST /api/login
 POST /api/logout
 GET  /api/me
-POST /api/company/register
+POST /api/company/registerpany/register
 ```
+```markdown
+> Frontend baru disarankan menggunakan `POST /api/register` untuk registrasi pencari kerja maupun perusahaan. `POST /api/company/register` dipertahankan untuk kompatibilitas dengan implementasi sebelumnya.
 
 ## Job Seeker
 
