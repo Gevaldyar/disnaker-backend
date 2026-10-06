@@ -1,23 +1,54 @@
 # DISNAKER API
 
-Dokumentasi API backend untuk aplikasi DISNAKER.
+Dokumentasi REST API backend untuk aplikasi **DISNAKER Kota Tasikmalaya**.
 
-Dokumen ini ditujukan untuk frontend developer yang mengintegrasikan web frontend dengan Laravel API.
+Dokumen ini ditujukan untuk frontend developer yang mengintegrasikan web frontend dengan backend Laravel API.
+
+> **Backend:** Laravel 13 + Laravel Sanctum + MySQL  
+> **Development API:** `http://localhost:8000/api`
 
 ---
 
-## 1. Teknologi
+## 1. Gambaran Umum
 
-- Laravel
+Backend menangani beberapa kebutuhan utama:
+
+- autentikasi dan role pengguna;
+- registrasi pencari kerja dan perusahaan;
+- verifikasi perusahaan oleh Admin;
+- pengelolaan dan verifikasi lowongan kerja;
+- profil profesional pencari kerja;
+- skills, pendidikan, dan pengalaman kerja;
+- upload foto dan CV;
+- direktori pencari kerja publik;
+- akses perusahaan terhadap profil pencari kerja publik dan CV sesuai hak akses;
+- notifications;
+- dashboard Admin dan Perusahaan;
+- content API untuk news, training, announcements, pages, dan services;
+- employment statistics.
+
+### Catatan alur pekerjaan
+
+Website **tidak menyediakan online job application** melalui API ini.
+
+Pencari kerja menggunakan website untuk melihat lowongan dan informasi pekerjaan. Cara melamar mengikuti informasi yang dicantumkan pada detail lowongan, misalnya email atau instruksi dari perusahaan.
+
+---
+
+# 2. Teknologi
+
+- Laravel 13
 - Laravel Sanctum
 - MySQL
 - REST API
-- Storage filesystem Laravel
+- Laravel Storage
 - Database Notifications
 
 ---
 
-## 2. Base URL Development
+# 3. Base URL
+
+### Development
 
 ```text
 http://localhost:8000/api
@@ -29,11 +60,11 @@ Contoh:
 GET http://localhost:8000/api/jobs
 ```
 
-Jika frontend dan backend berada di komputer yang berbeda, ganti `localhost` dengan IP komputer yang menjalankan backend.
+Jika frontend dan backend berjalan pada komputer berbeda, ganti `localhost` dengan IP komputer yang menjalankan backend.
 
 ---
 
-## 3. Role Pengguna
+# 4. Role Pengguna
 
 Backend menggunakan tiga role utama:
 
@@ -45,13 +76,24 @@ Backend menggunakan tiga role utama:
 
 Pengunjung umum dapat mengakses endpoint publik tanpa login.
 
+## Aturan registrasi role
+
+Public registration hanya menerima:
+
+```text
+pencari_kerja
+perusahaan
+```
+
+Role `admin` **tidak dapat dibuat melalui public registration**.
+
 ---
 
-## 4. Authentication
+# 5. Authentication
 
-API menggunakan Laravel Sanctum dengan Bearer Token.
+API menggunakan **Laravel Sanctum Bearer Token**.
 
-Setelah login, simpan token dari response login lalu kirim pada endpoint yang membutuhkan autentikasi:
+Untuk endpoint yang membutuhkan authentication:
 
 ```http
 Authorization: Bearer TOKEN
@@ -66,11 +108,86 @@ Authorization: Bearer 1|xxxxxxxxxxxxxxxx
 Accept: application/json
 ```
 
+Frontend perlu menyimpan token hasil login dan mengirimkannya pada request protected.
+
 ---
 
-# 5. Authentication API
+# 6. Authentication API
 
-## 5.1 Login
+## 6.1 Register
+
+Public registration menggunakan satu endpoint:
+
+```http
+POST /api/register
+```
+
+### Register pencari kerja
+
+```json
+{
+  "name": "Budi",
+  "email": "budi@example.com",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "role": "pencari_kerja"
+}
+```
+
+Setelah berhasil:
+
+- User dibuat dengan role `pencari_kerja`;
+- Job Seeker Profile dibuat otomatis;
+- `full_name` profile mengikuti `name`;
+- profile baru dibuat dengan `is_public = false`;
+- akun dapat langsung digunakan untuk login;
+- tidak membutuhkan approval Admin.
+
+### Register perusahaan
+
+```json
+{
+  "name": "Nama Pemilik",
+  "email": "owner@example.com",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "role": "perusahaan",
+  "company_name": "PT Maju Jaya",
+  "description": "Perusahaan yang bergerak di bidang teknologi.",
+  "address": "Tasikmalaya",
+  "phone": "081234567890",
+  "company_email": "hrd@majubersama.com",
+  "website": "https://example.com"
+}
+```
+
+Setelah berhasil:
+
+- User dibuat dengan role `perusahaan`;
+- Company dibuat otomatis;
+- status Company dimulai dari `pending`;
+- perusahaan dapat login;
+- operasi yang membutuhkan perusahaan terverifikasi harus menunggu approval Admin.
+
+### Role yang tidak diperbolehkan
+
+Request seperti:
+
+```json
+{
+  "name": "Fake Admin",
+  "email": "fake-admin@example.com",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "role": "admin"
+}
+```
+
+harus ditolak oleh validation.
+
+---
+
+## 6.2 Login
 
 ```http
 POST /api/login
@@ -85,7 +202,7 @@ POST /api/login
 }
 ```
 
-### Response berhasil
+### Response contoh
 
 ```json
 {
@@ -103,50 +220,47 @@ POST /api/login
 }
 ```
 
-Gunakan token pada header:
+---
 
-```http
-Authorization: Bearer TOKEN
-```
-
-## 5.2 Registration
-
-Registrasi publik menggunakan satu endpoint dengan pilihan role:
-
-```text
-pencari_kerja
-perusahaan
-```
-
-## 5.3 Current User
+## 6.3 Current User
 
 ```http
 GET /api/me
 ```
 
-Authentication: `auth:sanctum`
+Authentication:
 
-## 5.4 Logout
+```text
+auth:sanctum
+```
+
+---
+
+## 6.4 Logout
 
 ```http
 POST /api/logout
 ```
 
-Authentication: `auth:sanctum`
+Authentication:
+
+```text
+auth:sanctum
+```
 
 ---
 
-# 6. Company Registration
+# 7. Legacy Company Registration
 
-## 6.1 Registrasi perusahaan
+Endpoint lama tetap dipertahankan untuk kompatibilitas implementasi sebelumnya:
 
 ```http
 POST /api/company/register
 ```
 
-Tidak membutuhkan login.
+Endpoint ini tidak membutuhkan login.
 
-### Request
+Contoh request:
 
 ```json
 {
@@ -163,100 +277,138 @@ Tidak membutuhkan login.
 }
 ```
 
-Setelah berhasil, akun perusahaan dibuat dengan status perusahaan:
-
-```text
-pending
-```
-
-Perusahaan belum dapat membuat lowongan sampai disetujui Admin.
+> **Rekomendasi frontend baru:** gunakan `POST /api/register` untuk registrasi pencari kerja maupun perusahaan. Endpoint `/api/company/register` dipertahankan untuk kompatibilitas.
 
 ---
 
-# 7. Public API
+# 8. Public API
 
-Endpoint pada bagian ini tidak membutuhkan authentication.
+Semua endpoint pada bagian ini tidak membutuhkan authentication.
 
-## 7.1 Lowongan
-
-### Daftar lowongan
+## 8.1 Lowongan
 
 ```http
 GET /api/jobs
+GET /api/jobs/{job}
 ```
 
-### Detail lowongan
+Public API hanya menampilkan lowongan yang memenuhi kondisi publik, termasuk status approval dan masa berlaku.
+
+Fitur yang tersedia pada daftar lowongan meliputi pencarian/filter sesuai implementasi endpoint.
+
+Contoh:
+
+```text
+GET /api/jobs?search=Backend
+GET /api/jobs?location=Tasikmalaya
+GET /api/jobs?per_page=5
+GET /api/jobs?search=Backend&location=Tasikmalaya&per_page=5
+```
+
+Detail lowongan:
 
 ```http
 GET /api/jobs/{job}
 ```
 
-Lowongan yang belum disetujui / tidak memenuhi kondisi publik tidak ditampilkan pada public API.
+Detail dapat digunakan untuk menampilkan informasi seperti:
+
+- poster;
+- judul posisi;
+- nama perusahaan;
+- lokasi;
+- tanggal dibuat;
+- masa berlaku;
+- deskripsi;
+- jumlah views;
+- informasi cara melamar jika tersedia pada data lowongan.
+
+> Backend tidak menyediakan endpoint untuk submit lamaran kerja online.
 
 ---
 
-## 7.2 News
+## 8.2 News
 
 ```http
 GET /api/news
 GET /api/news/{news}
 ```
 
+Public API hanya menampilkan news yang sudah dipublikasikan.
+
 ---
 
-## 7.3 Training
+## 8.3 Training
 
 ```http
 GET /api/trainings
 GET /api/trainings/{training}
 ```
 
+Public API hanya menampilkan training yang sudah dipublikasikan.
+
 ---
 
-## 7.4 Announcement
+## 8.4 Announcement
 
 ```http
 GET /api/announcements
 GET /api/announcements/{announcement}
 ```
 
+Public API hanya menampilkan announcement yang sudah dipublikasikan.
+
 ---
 
-## 7.5 Pages
+## 8.5 Pages
 
 ```http
 GET /api/pages
 GET /api/pages/{slug}
 ```
 
+Detail page menggunakan `slug`.
+
+Contoh:
+
+```text
+GET /api/pages/profil
+```
+
 ---
 
-## 7.6 Services
+## 8.6 Services
 
 ```http
 GET /api/services
 GET /api/services/{slug}
 ```
 
+Detail service menggunakan `slug`.
+
 ---
 
-## 7.7 Employment Statistics
+## 8.7 Employment Statistics
 
 ```http
 GET /api/employment-statistics
 ```
 
+Endpoint mengembalikan data statistik ketenagakerjaan dalam bentuk aggregate/public data.
+
+Frontend tidak boleh menganggap endpoint ini sebagai endpoint untuk mengambil data pribadi pencari kerja.
+
 ---
 
-# 8. Public Job Seeker API
+# 9. Public Job Seeker API
 
-Profil pencari kerja bersifat publik hanya jika:
+Profil pencari kerja dapat ditemukan pada public API hanya jika:
 
 ```text
 is_public = true
 ```
 
-## 8.1 Daftar pencari kerja
+## 9.1 Daftar pencari kerja
 
 ```http
 GET /api/job-seekers
@@ -269,7 +421,7 @@ GET /api/job-seekers
 | `search` | `developer` | Mencari nama, headline, atau bio |
 | `city` | `Tasikmalaya` | Filter kota |
 | `skill` | `Laravel` | Filter berdasarkan skill |
-| `page` | `2` | Halaman pagination |
+| `page` | `2` | Pagination |
 
 Contoh:
 
@@ -279,40 +431,40 @@ GET /api/job-seekers?search=developer&city=Tasikmalaya&skill=Laravel
 
 Pagination menggunakan 12 profil per halaman.
 
-## 8.2 Detail profil publik
+## 9.2 Detail profile publik
 
 ```http
 GET /api/job-seekers/{jobSeeker}
 ```
 
-### Data yang dapat ditampilkan
+Data yang dapat ditampilkan:
 
-- Nama
-- Foto
-- Headline
-- Bio
-- Kota
-- Gender
-- Portfolio
-- LinkedIn
-- Skills
-- Pendidikan
-- Pengalaman kerja
+- nama;
+- foto;
+- headline;
+- bio;
+- kota;
+- gender;
+- portfolio;
+- LinkedIn;
+- skills;
+- pendidikan;
+- pengalaman kerja.
 
-### Data yang tidak ditampilkan pada public profile
+Data sensitif yang tidak ditampilkan pada public profile:
 
-- Nomor telepon
-- Alamat lengkap
-- Tanggal lahir
-- User ID internal
-- CV
-- Password
+- nomor telepon;
+- alamat lengkap;
+- tanggal lahir;
+- user ID internal;
+- CV;
+- password.
 
-Profil private akan menghasilkan `404` pada endpoint publik.
+Profile private menghasilkan `404` pada endpoint publik.
 
 ---
 
-# 9. Job Seeker API
+# 10. Job Seeker API
 
 Endpoint berikut membutuhkan:
 
@@ -327,7 +479,9 @@ Role wajib:
 pencari_kerja
 ```
 
-## 9.1 Profile sendiri
+---
+
+## 10.1 Profile sendiri
 
 ### Lihat profile
 
@@ -361,7 +515,14 @@ Gunakan `multipart/form-data` jika mengupload foto atau CV.
 | `linkedin_url` | URL | LinkedIn |
 | `is_public` | boolean | Visibilitas profile |
 
-Untuk `multipart/form-data`, `is_public` dapat dikirim sebagai `true`, `false`, `1`, atau `0`.
+Untuk `multipart/form-data`, `is_public` dapat dikirim sebagai:
+
+```text
+true
+false
+1
+0
+```
 
 ### Hapus profile
 
@@ -369,7 +530,9 @@ Untuk `multipart/form-data`, `is_public` dapat dikirim sebagai `true`, `false`, 
 DELETE /api/job-seeker/profile
 ```
 
-## 9.2 CV sendiri
+---
+
+## 10.2 CV sendiri
 
 ```http
 GET /api/job-seeker/profile/cv
@@ -379,7 +542,7 @@ CV disimpan pada private storage dan diberikan melalui endpoint terautentikasi.
 
 ---
 
-# 10. Job Seeker Skills
+# 11. Job Seeker Skills
 
 Authentication:
 
@@ -387,13 +550,13 @@ Authentication:
 Bearer TOKEN_PENCARI_KERJA
 ```
 
-## Daftar skill
+### Daftar
 
 ```http
 GET /api/job-seeker/skills
 ```
 
-## Tambah skill
+### Tambah
 
 ```http
 POST /api/job-seeker/skills
@@ -406,7 +569,7 @@ POST /api/job-seeker/skills
 }
 ```
 
-## Update skill
+### Update
 
 ```http
 PUT /api/job-seeker/skills/{skill}
@@ -419,17 +582,17 @@ PUT /api/job-seeker/skills/{skill}
 }
 ```
 
-## Hapus skill
+### Hapus
 
 ```http
 DELETE /api/job-seeker/skills/{skill}
 ```
 
-Satu profile tidak boleh memiliki nama skill yang sama lebih dari sekali.
+Satu profile tidak boleh memiliki nama skill yang sama lebih dari satu kali.
 
 ---
 
-# 11. Job Seeker Education
+# 12. Job Seeker Education
 
 Authentication:
 
@@ -437,13 +600,13 @@ Authentication:
 Bearer TOKEN_PENCARI_KERJA
 ```
 
-## Daftar pendidikan
+### Daftar
 
 ```http
 GET /api/job-seeker/educations
 ```
 
-## Tambah pendidikan
+### Tambah
 
 ```http
 POST /api/job-seeker/educations
@@ -467,19 +630,19 @@ Jika:
 is_current = true
 ```
 
-backend akan menyimpan:
+backend menyimpan:
 
 ```text
 end_date = null
 ```
 
-## Update pendidikan
+### Update
 
 ```http
 PUT /api/job-seeker/educations/{education}
 ```
 
-## Hapus pendidikan
+### Hapus
 
 ```http
 DELETE /api/job-seeker/educations/{education}
@@ -489,7 +652,7 @@ DELETE /api/job-seeker/educations/{education}
 
 ---
 
-# 12. Job Seeker Experience
+# 13. Job Seeker Experience
 
 Authentication:
 
@@ -497,13 +660,13 @@ Authentication:
 Bearer TOKEN_PENCARI_KERJA
 ```
 
-## Daftar pengalaman
+### Daftar
 
 ```http
 GET /api/job-seeker/experiences
 ```
 
-## Tambah pengalaman
+### Tambah
 
 ```http
 POST /api/job-seeker/experiences
@@ -528,19 +691,19 @@ Jika:
 is_current = true
 ```
 
-backend akan menyimpan:
+backend menyimpan:
 
 ```text
 end_date = null
 ```
 
-## Update pengalaman
+### Update
 
 ```http
 PUT /api/job-seeker/experiences/{experience}
 ```
 
-## Hapus pengalaman
+### Hapus
 
 ```http
 DELETE /api/job-seeker/experiences/{experience}
@@ -550,7 +713,7 @@ DELETE /api/job-seeker/experiences/{experience}
 
 ---
 
-# 13. Company API
+# 14. Company API
 
 Semua endpoint company membutuhkan:
 
@@ -567,9 +730,18 @@ perusahaan
 
 Perusahaan dengan status `pending` tidak dapat menjalankan operasi yang membutuhkan perusahaan terverifikasi.
 
+Status Company yang digunakan:
+
+```text
+pending
+approved
+rejected
+suspended
+```
+
 ---
 
-## 13.1 Company Dashboard
+## 14.1 Company Dashboard
 
 ```http
 GET /api/company/dashboard
@@ -577,7 +749,7 @@ GET /api/company/dashboard
 
 ---
 
-## 13.2 Company Profile
+## 14.2 Company Profile
 
 ### Lihat profile
 
@@ -591,7 +763,7 @@ GET /api/company/profile
 PUT /api/company/profile
 ```
 
-Perubahan data profile perusahaan dapat menyebabkan status perlu diverifikasi kembali sesuai aturan backend.
+Perubahan data profile perusahaan dapat menyebabkan perusahaan perlu diverifikasi kembali sesuai aturan backend.
 
 ### Ganti password
 
@@ -607,23 +779,27 @@ DELETE /api/company/account
 
 ---
 
-# 14. Company Jobs API
+# 15. Company Jobs API
 
-## Daftar lowongan milik perusahaan
+## 15.1 Daftar lowongan milik perusahaan
 
 ```http
 GET /api/company/jobs
 ```
 
-Pagination: 10 data per halaman.
+Pagination:
 
-## Detail lowongan
+```text
+10 data per halaman
+```
+
+## 15.2 Detail lowongan
 
 ```http
 GET /api/company/jobs/{job}
 ```
 
-## Buat lowongan
+## 15.3 Buat lowongan
 
 ```http
 POST /api/company/jobs
@@ -647,17 +823,18 @@ Lowongan baru dimulai sebagai:
 status = draft
 ```
 
-## Update lowongan
+## 15.4 Update lowongan
 
 ```http
 PUT /api/company/jobs/{job}
 ```
 
-Lowongan berstatus `pending` atau `expired` tidak dapat diedit.
+Ketentuan utama:
 
-Jika lowongan `approved` atau `rejected` diubah, statusnya dapat kembali menjadi `draft` untuk diproses ulang.
+- lowongan `pending` atau `expired` tidak dapat diedit;
+- lowongan `approved` atau `rejected` yang diubah dapat kembali menjadi `draft` untuk diproses ulang sesuai aturan backend.
 
-## Submit lowongan
+## 15.5 Submit lowongan
 
 ```http
 POST /api/company/jobs/{job}/submit
@@ -666,13 +843,16 @@ POST /api/company/jobs/{job}/submit
 Alur status:
 
 ```text
-Draft → Pending → Approved
-             └→ Rejected
+draft
+  ↓
+pending
+  ├── approved
+  └── rejected
 ```
 
-Lowongan harus melalui verifikasi Admin sebelum tampil di public API.
+Lowongan harus melalui verifikasi Admin sebelum tampil pada public API.
 
-## Hapus lowongan
+## 15.6 Hapus lowongan
 
 ```http
 DELETE /api/company/jobs/{job}
@@ -682,33 +862,41 @@ Lowongan yang sedang `pending` tidak dapat dihapus.
 
 ---
 
-# 15. Company — Lihat Pencari Kerja
+# 16. Company — Melihat Pencari Kerja
 
-Perusahaan yang sudah `approved` dapat melihat profile pencari kerja yang `is_public = true`.
+Perusahaan yang sudah `approved` dapat melihat profile pencari kerja jika:
 
-## Detail pencari kerja
+```text
+is_public = true
+```
+
+## 16.1 Detail pencari kerja
 
 ```http
 GET /api/company/job-seekers/{jobSeeker}
 ```
 
-Data yang diberikan kepada perusahaan mencakup informasi profesional yang diperlukan untuk melihat kandidat, termasuk kontak dan ketersediaan CV.
+Data yang diberikan kepada perusahaan mencakup informasi profesional dan kontak yang disediakan backend, termasuk ketersediaan CV.
 
-Profil private menghasilkan `404`.
+Profile private menghasilkan:
+
+```text
+404
+```
 
 Perusahaan `pending` tidak memiliki akses.
 
-## Download CV
+## 16.2 Download CV
 
 ```http
 GET /api/company/job-seekers/{jobSeeker}/cv
 ```
 
-CV tidak diberikan sebagai public storage URL. File diambil melalui backend dan hanya dapat diakses perusahaan yang memenuhi syarat akses.
+CV tidak diberikan sebagai public storage URL. File diambil melalui backend dan hanya dapat diakses perusahaan yang memenuhi syarat.
 
 ---
 
-# 16. Company Notifications
+# 17. Company Notifications
 
 Authentication:
 
@@ -716,15 +904,21 @@ Authentication:
 Bearer TOKEN_PERUSAHAAN
 ```
 
-## Semua notifikasi
+## Semua notification
 
 ```http
 GET /api/company/notifications
 ```
 
-Response menyediakan `unread_count` dan data pagination.
+Response menyediakan:
 
-## Jumlah unread
+```text
+unread_count
+pagination
+data
+```
+
+## Unread count
 
 ```http
 GET /api/company/notifications/unread-count
@@ -739,7 +933,7 @@ Contoh:
 }
 ```
 
-## Tandai satu notification sebagai dibaca
+## Tandai satu sebagai dibaca
 
 ```http
 PATCH /api/company/notifications/{notification}/read
@@ -753,13 +947,14 @@ PATCH /api/company/notifications/read-all
 
 Notification perusahaan digunakan antara lain untuk:
 
-- Lowongan disetujui
-- Lowongan ditolak
-- Alasan penolakan lowongan
+- lowongan disetujui;
+- lowongan ditolak;
+- alasan penolakan lowongan;
+- informasi proses verifikasi sesuai implementasi backend.
 
 ---
 
-# 17. Admin API
+# 18. Admin API
 
 Semua endpoint Admin membutuhkan:
 
@@ -776,15 +971,24 @@ admin
 
 ---
 
-## 17.1 Admin Dashboard
+# 19. Admin Dashboard
 
 ```http
 GET /api/admin/dashboard
 ```
 
-Dashboard menyediakan statistik perusahaan, lowongan, pencari kerja, konten, daftar pending, berita terbaru, dan jumlah notification belum dibaca.
+Dashboard menyediakan antara lain:
 
-Struktur utama:
+- statistik perusahaan;
+- statistik lowongan;
+- statistik pencari kerja;
+- statistik content;
+- pending companies;
+- pending jobs;
+- latest news;
+- jumlah notification yang belum dibaca.
+
+Contoh struktur utama:
 
 ```json
 {
@@ -807,9 +1011,25 @@ Struktur utama:
 
 ---
 
-# 18. Admin Company Management
+# 20. Admin Management
 
-## Semua perusahaan
+## 20.1 Admin users
+
+```http
+GET    /api/admin/admins
+POST   /api/admin/admins
+GET    /api/admin/admins/{user}
+PUT    /api/admin/admins/{user}
+DELETE /api/admin/admins/{user}
+```
+
+Public registration tidak digunakan untuk membuat Admin.
+
+---
+
+# 21. Admin Company Management
+
+## Daftar perusahaan
 
 ```http
 GET /api/admin/companies
@@ -821,7 +1041,7 @@ GET /api/admin/companies
 GET /api/admin/companies/pending
 ```
 
-## Detail perusahaan
+## Detail
 
 ```http
 GET /api/admin/companies/{company}
@@ -839,15 +1059,32 @@ PATCH /api/admin/companies/{company}/approve
 PATCH /api/admin/companies/{company}/reject
 ```
 
+Request:
+
+```json
+{
+  "rejection_reason": "Data perusahaan belum lengkap untuk proses verifikasi."
+}
+```
+
 ## Suspend
 
 ```http
 PATCH /api/admin/companies/{company}/suspend
 ```
 
+Status perusahaan:
+
+```text
+pending
+approved
+rejected
+suspended
+```
+
 ---
 
-# 19. Admin Job Management
+# 22. Admin Job Management
 
 ## Semua lowongan
 
@@ -861,15 +1098,13 @@ GET /api/admin/jobs
 GET /api/admin/jobs/pending
 ```
 
-## Approve lowongan
+## Approve
 
 ```http
 PATCH /api/admin/jobs/{job}/approve
 ```
 
-Setelah approved, lowongan dapat dipublikasikan sesuai aturan backend dan perusahaan mendapat notification.
-
-## Reject lowongan
+## Reject
 
 ```http
 PATCH /api/admin/jobs/{job}/reject
@@ -883,19 +1118,19 @@ Request:
 }
 ```
 
-Setelah rejected, perusahaan mendapat notification yang berisi alasan penolakan.
-
 ## Delete
 
 ```http
 DELETE /api/admin/jobs/{job}
 ```
 
+Setelah lowongan di-approve, lowongan dapat tampil pada public API jika juga memenuhi kondisi publik lainnya, misalnya belum expired.
+
 ---
 
-# 20. Admin Job Seeker Management
+# 23. Admin Job Seeker Management
 
-Endpoint ini merupakan management data pencari kerja dari sisi Admin.
+Endpoint ini digunakan Admin untuk management data pencari kerja dari sisi Admin:
 
 ```http
 GET    /api/admin/job-seekers
@@ -907,17 +1142,11 @@ PATCH  /api/admin/job-seekers/{jobSeeker}/verify
 PATCH  /api/admin/job-seekers/{jobSeeker}/reject
 ```
 
-Endpoint ini berbeda dari:
-
-```text
-/api/job-seeker/...
-```
-
-yang digunakan oleh pencari kerja untuk mengelola profile miliknya sendiri.
+> Endpoint Admin Job Seeker Management berbeda dari `/api/job-seeker/...` yang digunakan pencari kerja untuk mengelola profile miliknya sendiri.
 
 ---
 
-# 21. Admin Notifications
+# 24. Admin Notifications
 
 Authentication:
 
@@ -951,16 +1180,16 @@ PATCH /api/admin/notifications/read-all
 
 Admin mendapatkan notification untuk aktivitas yang memerlukan perhatian, antara lain:
 
-- Perusahaan baru mendaftar
-- Lowongan baru menunggu verifikasi
+- perusahaan baru mendaftar;
+- lowongan baru dikirim untuk verifikasi.
 
 ---
 
-# 22. Admin CRUD Content
+# 25. Admin CRUD Content
 
-Endpoint Admin untuk pengelolaan konten menggunakan authentication Admin.
+Semua endpoint berikut membutuhkan authentication Admin.
 
-## Announcements
+## 25.1 Announcements
 
 ```http
 GET    /api/admin/announcements
@@ -970,7 +1199,7 @@ POST   /api/admin/announcements/{announcement}
 DELETE /api/admin/announcements/{announcement}
 ```
 
-## News
+## 25.2 News
 
 ```http
 GET    /api/admin/news
@@ -980,7 +1209,7 @@ POST   /api/admin/news/{news}
 DELETE /api/admin/news/{news}
 ```
 
-## Trainings
+## 25.3 Trainings
 
 ```http
 GET    /api/admin/trainings
@@ -990,7 +1219,7 @@ POST   /api/admin/trainings/{training}
 DELETE /api/admin/trainings/{training}
 ```
 
-## Pages
+## 25.4 Pages
 
 ```http
 GET    /api/admin/pages
@@ -1000,7 +1229,7 @@ POST   /api/admin/pages/{page}
 DELETE /api/admin/pages/{page}
 ```
 
-## Services
+## 25.5 Services
 
 ```http
 GET    /api/admin/services
@@ -1010,27 +1239,13 @@ POST   /api/admin/services/{service}
 DELETE /api/admin/services/{service}
 ```
 
-> Catatan: berdasarkan route aktual backend, operasi update pada beberapa resource Admin content menggunakan method `POST`, bukan `PUT`.
+> **Catatan:** berdasarkan route backend saat ini, operasi update pada resource Admin content menggunakan `POST`, bukan `PUT`.
 
 ---
 
-# 23. Admin Management
+# 26. Response Convention
 
-## Admin users
-
-```http
-GET    /api/admin/admins
-POST   /api/admin/admins
-GET    /api/admin/admins/{user}
-PUT    /api/admin/admins/{user}
-DELETE /api/admin/admins/{user}
-```
-
----
-
-# 24. Response Convention
-
-Sebagian besar API menggunakan struktur:
+Sebagian besar endpoint custom menggunakan struktur:
 
 ```json
 {
@@ -1040,7 +1255,7 @@ Sebagian besar API menggunakan struktur:
 }
 ```
 
-Untuk Resource Collection Laravel, response dapat memiliki:
+Untuk Laravel Resource Collection, response dapat memiliki:
 
 ```json
 {
@@ -1050,56 +1265,69 @@ Untuk Resource Collection Laravel, response dapat memiliki:
 }
 ```
 
-Validation error menggunakan HTTP `422` dengan pola Laravel:
+## Validation error
+
+Validation menggunakan HTTP `422`.
+
+Contoh:
 
 ```json
 {
   "message": "The given data was invalid.",
   "errors": {
     "email": [
-      "..."
+      "The email has already been taken."
     ]
   }
 }
 ```
 
-Contoh status umum:
+## Status HTTP yang umum
 
 | Status | Makna |
 |---:|---|
 | `200` | Request berhasil |
 | `201` | Resource berhasil dibuat |
+| `401` | Belum terautentikasi |
 | `403` | Tidak memiliki izin |
 | `404` | Resource tidak ditemukan / tidak tersedia |
 | `422` | Validation atau business rule gagal |
 
+> Response error detail dapat berbeda sesuai middleware, controller, dan validation yang menangani request.
+
 ---
 
-# 25. File Upload
+# 27. File Upload
 
-## Public files
+## 27.1 Public files
 
-File publik menggunakan disk:
+File publik menggunakan:
 
 ```text
 storage/app/public
 ```
 
-dan dapat diakses melalui:
+Jenis file publik yang digunakan backend antara lain:
+
+- foto pencari kerja;
+- poster lowongan;
+- gambar news;
+- gambar pages;
+- gambar training.
+
+Akses public storage menggunakan:
 
 ```text
 /storage/...
 ```
 
-Contoh jenis file publik yang digunakan backend:
+Pastikan symbolic link dibuat:
 
-- Foto pencari kerja
-- Poster lowongan
-- Gambar news
-- Gambar pages
-- Gambar training
+```powershell
+php artisan storage:link
+```
 
-## Private files
+## 27.2 Private files
 
 CV pencari kerja menggunakan private storage:
 
@@ -1107,20 +1335,20 @@ CV pencari kerja menggunakan private storage:
 storage/app/private/job-seekers/cv
 ```
 
-CV tidak boleh diakses dengan direct public storage URL.
+CV **tidak boleh** diakses melalui direct public storage URL.
 
-Akses dilakukan melalui endpoint terautentikasi:
+Akses dilakukan melalui endpoint:
 
-```text
+```http
 GET /api/job-seeker/profile/cv
 GET /api/company/job-seekers/{jobSeeker}/cv
 ```
 
 ---
 
-# 26. CORS Development
+# 28. CORS Development
 
-Frontend development yang digunakan saat ini diizinkan dari:
+Frontend development saat ini diizinkan dari:
 
 ```text
 http://localhost:5173
@@ -1139,7 +1367,7 @@ Frontend dapat menggunakan:
 VITE_API_URL=http://localhost:8000/api
 ```
 
-Contoh fetch:
+Contoh public request:
 
 ```javascript
 const response = await fetch(
@@ -1149,7 +1377,7 @@ const response = await fetch(
 const result = await response.json();
 ```
 
-Untuk endpoint protected:
+Contoh protected request:
 
 ```javascript
 const response = await fetch(
@@ -1165,16 +1393,16 @@ const response = await fetch(
 
 ---
 
-# 27. Flow Bisnis Utama
+# 29. Flow Bisnis Utama
 
-## Company
+## 29.1 Company
 
 ```text
 Register
    ↓
-pending
+Company = pending
    ↓
-Admin approve company
+Admin approve / reject
    ↓
 approved
    ↓
@@ -1191,69 +1419,82 @@ Admin approve / reject
    └── rejected → notification + rejection_reason
 ```
 
-## Job Seeker
+## 29.2 Job Seeker
 
 ```text
-Register/Login
+Register
    ↓
-Create profile
+Login
    ↓
-Add skills
+Profile dibuat otomatis
    ↓
-Add education
+Lengkapi profile
    ↓
-Add experience
+Skills
+   ↓
+Education
+   ↓
+Experience
    ↓
 Upload CV
    ↓
-Set is_public
+Atur is_public
    ↓
-Profile dapat ditemukan jika is_public = true
+Jika is_public = true
+profile dapat ditemukan pada public directory
 ```
 
-## Public
+## 29.3 Public
 
 ```text
 Pengunjung
    ├── Lihat lowongan
    ├── Lihat news
    ├── Lihat training
+   ├── Lihat announcements
    ├── Lihat pages
    ├── Lihat services
-   └── Lihat profile pencari kerja publik
+   ├── Lihat employment statistics
+   └── Lihat profile pencari kerja yang public
 ```
 
 ---
 
-# 28. Security Rules Penting
+# 30. Aturan Akses Penting
 
-1. Jangan commit `.env`.
-2. Jangan mengirim `APP_KEY` melalui chat, README, Git, atau Postman collection.
-3. Gunakan Bearer Token untuk endpoint protected.
-4. Perusahaan harus `approved` untuk operasi yang memerlukan verifikasi.
-5. Profil pencari kerja harus `is_public = true` agar dapat dilihat publik/perusahaan.
-6. CV disimpan pada private storage.
-7. Perusahaan tidak boleh mengakses profile private.
-8. User tidak boleh mengubah skill, education, atau experience milik user lain.
-9. Admin-only endpoint harus menggunakan role `admin`.
-10. Company-only endpoint harus menggunakan role `perusahaan`.
-11. Job seeker-only endpoint harus menggunakan role `pencari_kerja`.
+| Fitur | Public | Pencari Kerja | Perusahaan | Admin |
+|---|:---:|:---:|:---:|:---:|
+| Lihat lowongan publik | ✅ | ✅ | ✅ | ✅ |
+| Registrasi | ✅ | - | - | - |
+| Profile pribadi pencari kerja | - | ✅ | ❌ | Endpoint Admin |
+| Skills sendiri | - | ✅ | ❌ | Endpoint Admin |
+| Education sendiri | - | ✅ | ❌ | Endpoint Admin |
+| Experience sendiri | - | ✅ | ❌ | Endpoint Admin |
+| Company profile | - | ❌ | ✅ | ✅ |
+| Company jobs | - | ❌ | ✅ | ✅ |
+| Approval company | ❌ | ❌ | ❌ | ✅ |
+| Approval job | ❌ | ❌ | ❌ | ✅ |
+| Lihat public job seeker | ✅ | ✅ | ✅* | ✅ |
+| Download CV | ❌ | Pemilik | ✅* | sesuai endpoint Admin |
+| Notifications | ❌ | sesuai endpoint yang tersedia | ✅ | ✅ |
+
+`*` Perusahaan harus memenuhi syarat access, terutama status `approved`, dan profile pencari kerja harus `is_public = true`.
 
 ---
 
-# 29. Menjalankan Project
+# 31. Cara Menjalankan Project
 
-## Install dependency
+## 31.1 Clone / project setup
+
+Setelah source code tersedia:
 
 ```powershell
 composer install
 ```
 
-Jika frontend juga membutuhkan Node dependency, jalankan perintah Node pada project frontend secara terpisah.
+## 31.2 Environment
 
-## Environment
-
-Buat `.env` berdasarkan `.env.example`, lalu konfigurasi database.
+Buat `.env` berdasarkan `.env.example`.
 
 Contoh development:
 
@@ -1262,33 +1503,53 @@ APP_URL=http://localhost:8000
 FILESYSTEM_DISK=local
 ```
 
-## Database
+Sesuaikan konfigurasi database dengan MySQL lokal.
+
+## 31.3 Generate application key
+
+Jika project baru dan `APP_KEY` belum tersedia:
+
+```powershell
+php artisan key:generate
+```
+
+Jangan memasukkan nilai `APP_KEY` ke repository atau dokumentasi publik.
+
+## 31.4 Database
+
+Untuk menjalankan migration biasa:
 
 ```powershell
 php artisan migrate
 ```
 
-Jika ingin membuat database development dari awal menggunakan seeder:
+Untuk membangun database development/testing dari nol:
 
 ```powershell
 php artisan migrate:fresh --seed
 ```
 
-> `migrate:fresh --seed` menghapus seluruh tabel database yang digunakan oleh connection aktif. Gunakan hanya pada database development/testing.
+> `migrate:fresh --seed` menghapus tabel pada database/connection aktif. Gunakan hanya pada database development/testing yang memang boleh di-reset.
 
-## Storage
+## 31.5 Storage
 
 ```powershell
 php artisan storage:link
 ```
 
-## Jalankan server
+## 31.6 Bersihkan cache
+
+```powershell
+php artisan optimize:clear
+```
+
+## 31.7 Jalankan server
 
 ```powershell
 php artisan serve
 ```
 
-Backend tersedia di:
+Backend:
 
 ```text
 http://localhost:8000
@@ -1296,7 +1557,7 @@ http://localhost:8000
 
 ---
 
-# 30. Testing
+# 32. Testing
 
 Jalankan seluruh test:
 
@@ -1304,88 +1565,121 @@ Jalankan seluruh test:
 php artisan test
 ```
 
-Backend saat dokumentasi ini dibuat telah memiliki test suite yang mencakup:
+Checkpoint backend saat README ini diperbarui:
 
-- Authentication
-- Role access
-- Company
-- Company registration
-- Company jobs
-- Admin dashboard
-- Admin verification
-- Notifications
-- Job seeker profile
-- Skills
-- Education
-- Experience
-- Public job seeker API
-- Company access to job seeker
-- API contract
-- End-to-end job flow
-- Public content API
+```text
+Tests:    122 passed (400 assertions)
+```
 
-Jika test gagal setelah perubahan kode, selesaikan test terlebih dahulu sebelum melakukan integrasi frontend.
+Test suite mencakup antara lain:
+
+- Authentication;
+- Registration;
+- Role access;
+- Company;
+- Company registration;
+- Company jobs;
+- Admin dashboard;
+- Admin verification;
+- Notifications;
+- Job seeker profile;
+- Skills;
+- Education;
+- Experience;
+- Public job seeker API;
+- Company access to job seeker;
+- API contract;
+- End-to-end job flow;
+- Public content API.
+
+Database juga telah berhasil diuji dari kondisi kosong menggunakan:
+
+```powershell
+php artisan migrate:fresh --seed
+```
+
+dan seluruh migration selesai tanpa conflict.
 
 ---
 
-# 31. Route Debug Endpoint
+# 33. Route Debug Endpoint
 
-Backend saat ini masih memiliki endpoint development:
+Backend masih memiliki endpoint development:
 
 ```http
 GET /api/test
 ```
 
-Endpoint ini sebaiknya digunakan hanya untuk debugging/development dan dipertimbangkan untuk dihapus sebelum deployment production.
+Endpoint ini digunakan untuk debugging/development dan sebaiknya dipertimbangkan untuk dihapus sebelum deployment production.
 
 ---
 
-# 32. Frontend Integration Checklist
+# 34. Frontend Integration Checklist
 
-Sebelum mulai integrasi frontend:
+Sebelum integrasi frontend:
 
-- [ ] Set `VITE_API_URL`
-- [ ] Pastikan backend berjalan pada port `8000`
-- [ ] Pastikan frontend berjalan pada port `5173`
+- [ ] Backend berjalan pada port `8000`
+- [ ] Frontend berjalan pada port `5173`
+- [ ] Set `VITE_API_URL=http://localhost:8000/api`
 - [ ] Pastikan CORS mengizinkan origin frontend
-- [ ] Implement login dan penyimpanan Bearer Token
+- [ ] Implement register dengan pilihan `pencari_kerja` / `perusahaan`
+- [ ] Implement login
+- [ ] Simpan Bearer Token setelah login
+- [ ] Implement routing/guard berdasarkan role
 - [ ] Implement public jobs
-- [ ] Implement public job seeker
-- [ ] Implement registration dengan pilihan role `pencari_kerja` atau `perusahaan`.
-- [ ] Redirect/flow berbeda berdasarkan role setelah registrasi atau login.
+- [ ] Implement public job seeker directory
+- [ ] Implement public news
+- [ ] Implement public training
+- [ ] Implement public announcements
+- [ ] Implement public pages
+- [ ] Implement public services
+- [ ] Implement employment statistics
 - [ ] Implement company dashboard
+- [ ] Implement company profile
 - [ ] Implement company jobs
 - [ ] Implement company notifications
+- [ ] Implement company job seeker access
 - [ ] Implement admin dashboard
+- [ ] Implement admin company verification
+- [ ] Implement admin job verification
 - [ ] Implement admin notifications
+- [ ] Implement admin content management
 - [ ] Implement job seeker profile
 - [ ] Implement skills
 - [ ] Implement education
 - [ ] Implement experience
 - [ ] Implement CV upload/download
+- [ ] Pastikan CV tidak diperlakukan sebagai public storage URL
 
 ---
 
-# 33. Ringkasan Endpoint
+# 35. Ringkasan Endpoint
 
 ## Public
 
 ```text
-GET  /api/jobs
-GET  /api/jobs/{job}
-GET  /api/news
-GET  /api/news/{news}
-GET  /api/trainings
-GET  /api/trainings/{training}
-GET  /api/announcements
-GET  /api/announcements/{announcement}
-GET  /api/pages
-GET  /api/pages/{slug}
-GET  /api/services
-GET  /api/services/{slug}
-GET  /api/employment-statistics
-GET  /api/job-seekers
-GET  /api/job-seekers/{jobSeeker}
+GET /api/jobs
+GET /api/jobs/{job}
+
+GET /api/news
+GET /api/news/{news}
+
+GET /api/trainings
+GET /api/trainings/{training}
+
+GET /api/announcements
+GET /api/announcements/{announcement}
+
+GET /api/pages
+GET /api/pages/{slug}
+
+GET /api/services
+GET /api/services/{slug}
+
+GET /api/employment-statistics
+
+GET /api/job-seekers
+GET /api/job-seekers/{jobSeeker}
 ```
 
 ## Authentication
@@ -1395,10 +1689,11 @@ POST /api/register
 POST /api/login
 POST /api/logout
 GET  /api/me
-POST /api/company/registerpany/register
+
+POST /api/company/register
 ```
-```markdown
-> Frontend baru disarankan menggunakan `POST /api/register` untuk registrasi pencari kerja maupun perusahaan. `POST /api/company/register` dipertahankan untuk kompatibilitas dengan implementasi sebelumnya.
+
+`POST /api/company/register` adalah endpoint legacy dan dipertahankan untuk kompatibilitas. Frontend baru disarankan menggunakan `POST /api/register`.
 
 ## Job Seeker
 
@@ -1469,9 +1764,9 @@ PATCH  /api/admin/companies/{company}/suspend
 
 GET    /api/admin/jobs
 GET    /api/admin/jobs/pending
-DELETE /api/admin/jobs/{job}
 PATCH  /api/admin/jobs/{job}/approve
 PATCH  /api/admin/jobs/{job}/reject
+DELETE /api/admin/jobs/{job}
 
 GET    /api/admin/job-seekers
 POST   /api/admin/job-seekers
@@ -1519,17 +1814,40 @@ DELETE /api/admin/services/{service}
 
 ---
 
-# 34. Status Backend
+# 36. Security Rules
 
-Checkpoint saat ini:
+1. Jangan commit `.env`.
+2. Jangan mengirim `APP_KEY` melalui chat, README, Git, atau Postman collection.
+3. Gunakan Bearer Token untuk endpoint protected.
+4. Public registration hanya mengizinkan role `pencari_kerja` dan `perusahaan`.
+5. Perusahaan harus `approved` untuk operasi yang membutuhkan verifikasi.
+6. Profil pencari kerja harus `is_public = true` agar dapat ditemukan publik.
+7. CV disimpan pada private storage.
+8. Perusahaan tidak boleh mengakses profile private.
+9. User tidak boleh mengubah data milik user lain.
+10. Endpoint Admin harus menggunakan role `admin`.
+11. Endpoint Company harus menggunakan role `perusahaan`.
+12. Endpoint Job Seeker pribadi harus menggunakan role `pencari_kerja`.
+13. Ownership check tetap berlaku meskipun token valid.
+14. Jangan mengandalkan frontend saja untuk membatasi role atau permission; backend tetap menjadi sumber aturan akses.
+
+---
+
+# 37. Status Backend
+
+Checkpoint saat README ini diperbarui:
 
 ```text
 Authentication             ✅
+Public registration        ✅
 Role & middleware          ✅
 Company registration       ✅
 Company management         ✅
 Company jobs               ✅
 Admin verification         ✅
+Job rejection              ✅
+Company rejection          ✅
+Rejection reason           ✅
 Public jobs                ✅
 Public content             ✅
 Job seeker profile         ✅
@@ -1541,9 +1859,63 @@ Public job seeker          ✅
 Company → Job seeker       ✅
 Notifications              ✅
 Admin dashboard            ✅
-API tests                  ✅
+API contract tests         ✅
+Role/ownership tests       ✅
 CORS development           ✅
 Private CV storage         ✅
+Fresh migration + seeder   ✅
+Full test suite            ✅
 ```
 
-Backend dapat mulai diintegrasikan dengan frontend menggunakan endpoint di atas.
+## Verification checkpoint
+
+```text
+php artisan migrate:fresh --seed
+```
+
+berhasil dijalankan pada database development.
+
+```text
+php artisan test
+```
+
+hasil:
+
+```text
+122 passed
+400 assertions
+```
+
+---
+
+# 38. Catatan untuk Frontend Developer
+
+Urutan integrasi yang disarankan:
+
+```text
+1. Public API
+   ↓
+2. Register + Login
+   ↓
+3. Role guard
+   ↓
+4. Job Seeker
+   ↓
+5. Company
+   ↓
+6. Admin
+   ↓
+7. Notifications
+   ↓
+8. File upload/download
+   ↓
+9. Final integration testing
+```
+
+Untuk masalah integrasi, gunakan source of truth berikut:
+
+```powershell
+php artisan route:list --path=api
+```
+
+dan dokumentasi ini untuk method, role, authorization, serta alur bisnis.
